@@ -1,75 +1,68 @@
-# React + TypeScript + Vite
+# 2026 BOEING DAY - Reforge AI Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+## 기술 스택
 
-Currently, two official plugins are available:
+| 구분         | 사용 기술                      |
+| ------------ | ------------------------------ |
+| Framework    | React 19, TypeScript 6, Vite 8 |
+| Routing      | React Router                   |
+| Server state | TanStack Query                 |
+| Styling      | Tailwind CSS 4                 |
+| HTTP         | Axios                          |
+| Chart        | Recharts                       |
+| PDF          | react-to-print                 |
+| Quality      | ESLint                         |
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## 시작하기
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+- 프론트: `http://localhost:5173`
+- 백엔드: `http://localhost:8000` (FastAPI 서버가 먼저 실행되어 있어야 합니다)
+- `/api`로 시작하는 요청은 Vite 프록시를 통해 백엔드로 전달됩니다.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 스크립트
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+| 명령어            | 설명           |
+| ----------------- | -------------- |
+| `npm run dev`     | 개발 서버 실행 |
+| `npm run build`   | 프로덕션 빌드  |
+| `npm run preview` | 빌드 결과 확인 |
+| `npm run lint`    | ESLint 검사    |
 
+## 폴더 구조
+
+```text
+src/
+├─ api/ # Axios 인스턴스, API 함수
+├─ hooks/ # TanStack Query 훅
+├─ types/ # API 응답 타입
+├─ pages/ # 화면 단위 컴포넌트
+│ ├─ ScanPage.tsx # 스캔 화면
+│ ├─ AnalysisPage.tsx # 분석 진행 화면
+│ ├─ ScenarioPage.tsx # 시나리오 화면
+│ └─ ProposalPage.tsx # 제안서 화면
+├─ components/ # 공통 UI 컴포넌트
+├─ router.tsx
+└─ main.tsx
 ```
+
+
+## 라우팅
+
+| 경로                       | 화면           |
+| -------------------------- | -------------- |
+| `/`                        | 스캔 화면      |
+| `/scans/:scanId/analysis`  | 분석 진행 화면 |
+| `/scans/:scanId/scenarios` | 시나리오 화면  |
+| `/proposals/:proposalId`   | 제안서 화면    |
+
+## 브랜치 전략
+
+| 브랜치 | 용도                  |
+| ------ | --------------------- |
+| `main` | 배포 및 시연용        |
+| `dev`  | 개발 통합             |
