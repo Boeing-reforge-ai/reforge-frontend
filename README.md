@@ -39,13 +39,16 @@ npm run dev
 src/
 ├─ api/ # Axios 인스턴스, API 함수
 ├─ hooks/ # TanStack Query 훅
-├─ types/ # API 응답 타입
+├─ types/ # API 응답 타입 (api.ts)
+├─ lib/ # 코드값 → 한글 라벨, 화면 상태 계산
+├─ mocks/ # API 연결 전 화면 확인용 목업 (시제품 T1 기준)
 ├─ pages/ # 화면 단위 컴포넌트
-│ ├─ ScanPage.tsx # 스캔 화면
-│ ├─ AnalysisPage.tsx # 분석 진행 화면
+│ ├─ ScanPage.tsx # 스캔 대기 화면
+│ ├─ AnalysisPage.tsx # 분석 진행 화면 (개발 모드 하단 DEMO 바로 상태 전환)
 │ ├─ ScenarioPage.tsx # 시나리오 화면
 │ └─ ProposalPage.tsx # 제안서 화면
-├─ components/ # 공통 UI 컴포넌트
+├─ components/ # 공통 UI 컴포넌트 (헤더 레이아웃, 아이콘, 로고, 스캔 작업 영역)
+├─ index.css # 디자인 스타일 (Figma Make "Scrap Recycling Dashboard")
 ├─ router.tsx
 └─ main.tsx
 ```
