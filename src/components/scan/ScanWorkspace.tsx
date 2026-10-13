@@ -26,7 +26,7 @@ function ScannerVisual({ view, scan }: { view: ScanView; scan: ScanDetail | null
       {view === 'done' && (
         <div className="scan-complete-popup">
           <span><Icon name="check" /></span>
-          <div><strong>유형 및 상태 판정이 완료되었습니다</strong><small>캡처 이미지를 고정했습니다</small></div>
+          <div><strong>유형 및 상태 판정이 완료되었습니다.</strong></div>
         </div>
       )}
       <div className="camera-meta">
@@ -37,10 +37,8 @@ function ScannerVisual({ view, scan }: { view: ScanView; scan: ScanDetail | null
   );
 }
 
-const CAPTION: Record<Exclude<ScanView, 'done'>, [string, string]> = {
+const CAPTION: Record<'idle' | 'failed', [string, string]> = {
   idle: ['자투리 QR을 스캔대에 올려주세요', '가이드 안에 QR 코드가 위치하도록 소재를 정렬하세요.'],
-  recognized: ['QR 인식 완료', '로트 정보를 불러왔습니다. 유형 판정을 시작합니다.'],
-  analyzing: ['판정 엔진이 소재를 분석하고 있습니다', '유형 · RED 게이트 · 밀도 검증 · 상태 점수를 순차 분석합니다.'],
   failed: ['판정을 완료하지 못했습니다', '스캔 스테이션 연결과 QR 데이터를 확인해 주세요.'],
 };
 
@@ -50,31 +48,35 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
   const tone = LED_CLASS[scan.led ?? 'G'];
   const reusable = !!scan.reusable;
   const [countdown, setCountdown] = useState(5);
+  // TODO: 칩형·오염형 자동 복귀 임시 해제 중. 복구 시 `!reusable`로 되돌리기
+  const autoReturn = !reusable && type === '덩어리형';
 
   // 재사용 불가 자투리는 5초 뒤 스캔 대기 화면으로 복귀
   useEffect(() => {
-    if (reusable) return;
+    if (!autoReturn) return;
     const timer = window.setInterval(() => setCountdown((v) => v - 1), 1000);
     return () => window.clearInterval(timer);
-  }, [reusable]);
+  }, [autoReturn]);
   useEffect(() => {
-    if (!reusable && countdown <= 0) navigate('/');
-  }, [countdown, reusable, navigate]);
+    if (autoReturn && countdown <= 0) navigate('/');
+  }, [countdown, autoReturn, navigate]);
 
-  const label = type === '덩어리형' && !reusable ? (scan.screening === 'RED' ? '재사용 불가' : '추가 검토 대상') : SCRAP_RESULT[type].label;
+  // 재사용 불가 덩어리형만 유형 아래에 사유 라벨을 표시
+  const stacked = type === '덩어리형' && !reusable;
+  const label = stacked ? (scan.screening === 'RED' ? '재사용 불가' : '추가 검토 대상') : SCRAP_RESULT[type].label;
   const note =
     type === '칩형' ? CHIP_NOTE[scan.lot.fam]
-    : scan.reason_codes.length ? `판정 사유: ${scan.reason_codes.map(reasonLabel).join(', ')}`
+    : scan.reason_codes.length ? `${scan.reason_codes.map(reasonLabel).join(', ')}`
     : '';
 
   return (
     <div className={`decision-card camera-decision ${tone}`}>
       <div className="decision-label">최종 유형 판정</div>
-      <div className={`decision-title ${reusable ? '' : 'stacked'}`}>
+      <div className={`decision-title ${stacked ? 'stacked' : ''}`}>
         <span className="decision-dot" />
         <div className="decision-copy">
           <strong>{type}</strong>
-          {reusable && <i>·</i>}
+          {!stacked && <i>·</i>}
           <b>{label}</b>
         </div>
       </div>
@@ -85,15 +87,15 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
             <div><span>즉시 RED 게이트</span><strong className="pass"><Icon name="check" /> 통과</strong></div>
             <div><span>밀도 교차검증</span><strong className="pass">{fmt(scan.density_err == null ? null : +(scan.density_err * 100).toFixed(2), '%')} · 정상</strong></div>
           </div>
-          <p>
+          {/* <p>
             {scan.needs_review ? '상태 점수가 경계 구간(75~85)이라 엔지니어 검토가 필요합니다. ' : ''}
             {scan.reason_codes.length ? `참고: ${scan.reason_codes.map(reasonLabel).join(', ')}. ` : '화학조성, 균열, 오염 항목이 모두 GREEN 구간입니다. '}
             재가공 소재로 사용할 수 있습니다.
-          </p>
+          </p> */}
           <div className="decision-actions">
             {/* TODO: POST /scenarios/generate 호출 후 이동 */}
             <button className="primary-button" onClick={() => navigate(`/scans/${scan.scan_id}/scenarios`)}><Icon name="spark" /> AI 분석 시작 <Icon name="arrow" /></button>
-            <button className="cancel-button" onClick={() => navigate('/')}><Icon name="x" /> 취소</button>
+            <button className="cancel-button" onClick={() => navigate('/')}>돌아가기</button>
           </div>
         </>
       ) : (
@@ -101,7 +103,7 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
           <p>{note}</p>
           <div className="bin-callout">
             <div><span>유형 분류</span><strong>{SCRAP_RESULT[type].bin}</strong></div>
-            <b>{countdown}초 후 자동 복귀</b>
+            {autoReturn && <b>{countdown}초 후 자동 복귀</b>}
           </div>
         </div>
       )}
@@ -143,7 +145,8 @@ function LotDetails({ scan }: { scan: ScanDetail }) {
           {rows.map(([key, value]) => <div className="info-row" key={key}><span>{key}</span><strong>{value}</strong></div>)}
         </div>
       </section>
-      {c && (
+      {/* 품질 섹션은 판정 완료 후에만 표시 */}
+      {c && scan.status === 'done' && (
         <section>
           <div className="section-kicker inspection-heading">
             <span>QUALITY & TRACEABILITY</span>
@@ -185,7 +188,6 @@ const PROGRESS_STEPS: [string, number][] = [['유형 판정', 0], ['소재 식�
 export default function ScanWorkspace({ scan, view }: { scan: ScanDetail | null; view: ScanView }) {
   const navigate = useNavigate();
   const ledClass = view === 'done' && scan?.led ? LED_CLASS[scan.led] : '';
-  const [title, desc] = view === 'done' ? ['', ''] : CAPTION[view];
 
   return (
     <main className="analysis-main">
@@ -197,15 +199,23 @@ export default function ScanWorkspace({ scan, view }: { scan: ScanDetail | null;
         <ScannerVisual view={view} scan={scan} />
         {view === 'done' && scan ? (
           <DecisionCard key={scan.scan_id} scan={scan} />
-        ) : (
+        ) : view === 'idle' || view === 'failed' ? (
           <div className="scan-caption">
-            <div className="caption-icon"><Icon name={view === 'idle' ? 'scan' : view === 'failed' ? 'x' : 'check'} /></div>
-            <div><strong>{title}</strong><span>{desc}</span></div>
+            <div className="caption-icon"><Icon name={view === 'idle' ? 'scan' : 'x'} /></div>
+            <div><strong>{CAPTION[view][0]}</strong><span>{CAPTION[view][1]}</span></div>
+          </div>
+        ) : scan && (
+          <div className="progress-card">
+            <div className="progress-top"><span>유형 판정 중</span><strong>{scan.progress}<small>%</small></strong></div>
+            <div className="progress-track"><span style={{ width: `${scan.progress}%` }} /></div>
+            <div className="progress-steps">
+              {PROGRESS_STEPS.map(([label, at]) => <span key={label} className={scan.progress > at ? 'on' : ''}>{label}</span>)}
+            </div>
           </div>
         )}
       </section>
       <aside className="result-panel">
-        <div className="panel-head"><span>분석 결과</span><span className="mono">{scan ? `SCAN #${String(scan.scan_id).padStart(4, '0')}` : '—'}</span></div>
+        <div className="panel-head"><span>분석 결과</span><span className="mono">{scan ? `SCAN #${String(scan.scan_id).padStart(4, '0')}` : ' '}</span></div>
         <div className="panel-body">
           {!scan ? (
             <div className="empty-result">
@@ -216,23 +226,12 @@ export default function ScanWorkspace({ scan, view }: { scan: ScanDetail | null;
           ) : view === 'failed' ? (
             <div className="error-card">
               <div className="error-icon"><Icon name="x" /></div>
-              <h2>상태 판정에 실패했습니다</h2>
+              <h2>상태 판정에 실패했습니다.</h2>
               <p>{scan.error ?? '알 수 없는 오류가 발생했습니다.'}</p>
               <button className="secondary-button" onClick={() => navigate('/')}><Icon name="refresh" /> 다시 스캔</button>
             </div>
           ) : (
-            <>
-              <LotDetails scan={scan} />
-              {view !== 'done' && (
-                <div className="progress-card">
-                  <div className="progress-top"><span>유형 판정 중</span><strong>{scan.progress}<small>%</small></strong></div>
-                  <div className="progress-track"><span style={{ width: `${scan.progress}%` }} /></div>
-                  <div className="progress-steps">
-                    {PROGRESS_STEPS.map(([label, at]) => <span key={label} className={scan.progress > at ? 'on' : ''}>{label}</span>)}
-                  </div>
-                </div>
-              )}
-            </>
+            <LotDetails scan={scan} />
           )}
         </div>
       </aside>

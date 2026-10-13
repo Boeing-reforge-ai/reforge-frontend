@@ -30,18 +30,19 @@ function LotSummaryBar() {
   return (
     <div className="lot-summary">
       <div><span>로트 번호</span><strong>{scan.lot.lot_id}</strong></div>
-      <div><span>소재</span><strong>{scan.lot.grade}</strong><small>{scan.lot.temper}</small></div>
+      <div><span>소재</span><span><strong>{scan.lot.grade}</strong><small>{scan.lot.temper}</small></span></div>
       <div><span>무게</span><strong>{scan.measure.kg}<small> kg</small></strong></div>
       <div><span>치수</span><strong>{w} × {d} × {h}<small> mm</small></strong></div>
-      <div className="reusable-pill"><span className="status-dot" /> {scan.scrap_type} · {scan.condition_score} {scan.screening}</div>
+      <div className="reusable-pill">{scan.scrap_type} · {scan.condition_score}</div>
     </div>
   );
 }
 
-function ScoreGauge({ score }: { score: number }) {
+function ScoreBar({ score }: { score: number }) {
   return (
-    <div className="score-gauge" style={{ background: `conic-gradient(#1d6fe0 ${score * 3.6}deg, #e2e8f0 0deg)` }}>
-      <div><strong>{score}</strong><span>/ 100</span></div>
+    <div className="score-block">
+      <div className="score-top"><span>우선순위 점수 P</span><strong>{score}<small>/ 100</small></strong></div>
+      <div className="progress-track"><span style={{ width: `${score}%` }} /></div>
     </div>
   );
 }
@@ -74,7 +75,7 @@ function ScenarioCard({ scenario, selected, onSelect }: { scenario: Scenario; se
             <span className={certOk ? 'ok' : 'no'}><Icon name={certOk ? 'check' : 'x'} /> 재질증명서 승계 가능</span>
           </div>
         </div>
-        <div className="score-block"><span>우선순위 점수 P</span><ScoreGauge score={scenario.score} /></div>
+        <ScoreBar score={scenario.score} />
       </div>
       <div className="metric-grid">
         <div><span>재료 활용률</span><strong>{m.utilization}<small>%</small></strong></div>
@@ -88,7 +89,7 @@ function ScenarioCard({ scenario, selected, onSelect }: { scenario: Scenario; se
           <div><AiBadge /> 판정 근거</div>
           <p className={expanded ? '' : 'line-clamp-1'}>{scenario.reason}</p>
           <button onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}>
-            {expanded ? '상세 접기' : '상세 전체보기'} <Icon name="chevron" className={`size-4 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
+            {expanded ? '접기' : '상세 보기'} <Icon name="chevron" className={`size-4 ${expanded ? '-rotate-90' : 'rotate-90'}`} />
           </button>
         </div>
       </div>
@@ -133,7 +134,7 @@ function Comparison({ selectedId }: { selectedId: number }) {
   ];
   return (
     <section className="content-section comparison-section">
-      <div className="section-title"><span>C</span><div><p>COMPARISON</p><h2>시나리오 비교</h2></div></div>
+      <div className="section-title"><div><p>COMPARISON</p><h2>시나리오 비교</h2></div></div>
       <div className="comparison-table">
         <div className="comparison-row head">
           <span>비교 지표</span>
@@ -170,7 +171,7 @@ export default function ScenarioPage() {
           <button className={`compare-button ${compare ? 'active' : ''}`} onClick={() => setCompare(!compare)}><Icon name="compare" /> 비교 보기 <i>{compare ? 'ON' : 'OFF'}</i></button>
         </div>
         <section className="content-section">
-          <div className="section-title"><span>A</span><div><p>GEOMETRY · QUALIFICATION FILTER</p><h2>후보 필터 결과</h2></div><b>{result.candidates.length}개 통과</b></div>
+          <div className="section-title"><div><p>GEOMETRY · QUALIFICATION FILTER</p><h2>후보 필터 결과</h2></div><b>{result.candidates.length}개 통과</b></div>
           <div className="filter-grid">
             {result.candidates.map((c) => {
               const p = partsById[c.part_id];
@@ -196,7 +197,7 @@ export default function ScenarioPage() {
           )}
         </section>
         <section className="content-section recommendation-section">
-          <div className="section-title"><span>B</span><div><p>RECOMMENDATION</p><h2>시나리오 추천 순위</h2></div><b>총 {result.scenarios.length}개 시나리오</b></div>
+          <div className="section-title"><div><p>RECOMMENDATION</p><h2>시나리오 추천 순위</h2></div><b>총 {result.scenarios.length}개 시나리오</b></div>
           <div className="scenario-list">
             {result.scenarios.map((s) => <ScenarioCard key={s.scenario_id} scenario={s} selected={selected === s.scenario_id} onSelect={() => setSelected(s.scenario_id)} />)}
           </div>

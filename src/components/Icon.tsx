@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 
 export type IconName =
   | 'scan' | 'spark' | 'file' | 'check' | 'x' | 'arrow' | 'edit'
-  | 'print' | 'download' | 'refresh' | 'chevron' | 'compare' | 'box';
+  | 'print' | 'download' | 'refresh' | 'chevron' | 'compare' | 'box' | 'return';
 
 const paths: Record<IconName, ReactNode> = {
   scan: <><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3" /><path d="M7 12h10M12 7v10" /></>,
@@ -14,10 +14,17 @@ const paths: Record<IconName, ReactNode> = {
   edit: <path d="m14 5 5 5M4 20l4.5-1 10-10a2 2 0 0 0-5-5l-10 10L3 21z" />,
   print: <><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" /><path d="M6 14h12v8H6z" /></>,
   download: <path d="M12 3v12m-4-4 4 4 4-4M4 20h16" />,
-  refresh: <><path d="M20 7h-6V1" /><path d="M20 7a9 9 0 1 0 1 9" /></>,
+  // 20×20 원본을 24 그리드로 확대 (선 굵기 1.5 × 1.2 = 1.8)
+  refresh: (
+    <g transform="scale(1.2)" strokeWidth="1.5">
+      <path d="M16.6914 1.5L17.1914 6L13.1914 7" />
+      <path d="M16.6666 5.83352C15.6849 4.50894 14.2941 3.54475 12.7093 3.09011C11.1245 2.63546 9.43403 2.7157 7.89942 3.31841C6.36481 3.92112 5.07156 5.01271 4.21972 6.42432C3.36788 7.83594 3.00492 9.48891 3.187 11.1276C3.36907 12.7662 4.08602 14.2992 5.22695 15.4894C6.36788 16.6796 7.8692 17.4607 9.49868 17.7118C11.1282 17.9629 12.795 17.6701 14.2413 16.8787C15.6877 16.0873 16.8329 14.8413 17.5 13.3335" />
+    </g>
+  ),
   chevron: <path d="m9 18 6-6-6-6" />,
   compare: <path d="M8 4H4v16h4M16 4h4v16h-4M12 2v20" />,
   box: <><path d="m3 7 9-5 9 5-9 5z" /><path d="m3 7 9 5v10l-9-5zM21 7l-9 5v10l9-5z" /></>,
+  return: <><path d="M9 14 4 9l5-5" /><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" /></>,
 };
 
 export default function Icon({ name, className = 'size-5' }: { name: IconName; className?: string }) {
