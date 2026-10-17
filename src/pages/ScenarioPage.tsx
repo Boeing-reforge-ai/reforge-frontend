@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { AiBadge } from '@/components/Brand';
 import Icon from '@/components/Icon';
+import MaterialDetail from '@/components/MaterialDetail';
 import { USAGE_STAGE_LABEL, won } from '@/lib/labels';
 import { mockParts, mockPlans, mockScan, mockScenarios } from '@/mocks/data';
 import type { Part, ScanDetail, Scenario } from '@/types/api';
@@ -25,7 +26,7 @@ function usableDims(s: ScanDetail) {
   return (s.measure.dim_mm ?? [0, 0, 0]).map((d) => +(d - 2 * a).toFixed(1)).sort((x, y) => y - x);
 }
 
-function LotSummaryBar() {
+function LotSummaryBar({ detail, onToggle }: { detail: boolean; onToggle: () => void }) {
   const [w, d, h] = scan.measure.dim_mm ?? [0, 0, 0];
   return (
     <div className="lot-summary">
@@ -34,6 +35,9 @@ function LotSummaryBar() {
       <div><span>무게</span><strong>{scan.measure.kg}<small> kg</small></strong></div>
       <div><span>치수</span><strong>{w} × {d} × {h}<small> mm</small></strong></div>
       <div className="reusable-pill">{scan.scrap_type} · {scan.condition_score}</div>
+      <button className={`lot-detail-toggle ${detail ? 'active' : ''}`} onClick={onToggle}>
+        자세히 보기 <Icon name="chevron" className={`size-4 ${detail ? '-rotate-90' : 'rotate-90'}`} />
+      </button>
     </div>
   );
 }
@@ -160,11 +164,18 @@ export default function ScenarioPage() {
   const [selected, setSelected] = useState(result.recommended_id ?? result.scenarios[0].scenario_id);
   const [showRejected, setShowRejected] = useState(false);
   const [compare, setCompare] = useState(false);
+  const [detail, setDetail] = useState(false);
   const scenario = result.scenarios.find((s) => s.scenario_id === selected)!;
 
   return (
     <>
-      <LotSummaryBar />
+      <LotSummaryBar detail={detail} onToggle={() => setDetail(!detail)} />
+      {/* 자세히 보기: 바 아래로 펼쳐지며 본문을 밀어냄 */}
+      {detail && (
+        <div className="lot-detail-panel">
+          <MaterialDetail scan={scan} withJudgment hideSummary />
+        </div>
+      )}
       <main className="scenario-page">
         <div className="page-intro">
           <div><p>AI SCENARIO ANALYSIS</p><h1>재활용 시나리오 분석</h1><span>형상 적합성과 생산 계획을 종합하여 최적의 재활용 경로를 추천합니다.</span></div>
@@ -211,7 +222,7 @@ export default function ScenarioPage() {
       <div className="selection-bar">
         <div><span>선택한 시나리오</span><strong>{scenario.parts.map((p) => p.name).join(' + ')}</strong><i>우선순위 점수 P {scenario.score}점</i></div>
         <div className="selection-actions">
-          <button className="cancel-button dark" onClick={() => navigate('/')}><Icon name="x" /> 시나리오 취소</button>
+          <button className="cancel-button dark" onClick={() => navigate('/')}><Icon name="x" /></button>
           {/* TODO: POST /proposals/generate { scan_id, scenario_id } 후 /proposals/{proposal_id}로 이동 */}
           <button className="primary-button" onClick={() => navigate('/proposals/1')}><Icon name="file" /> 이 시나리오로 제안서 생성 <Icon name="arrow" /></button>
         </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router';
 import ScanWorkspace from '@/components/scan/ScanWorkspace';
 import { viewOf } from '@/lib/scan';
 import { mockAnalyzingScan, mockChipScan, mockContamScan, mockScan } from '@/mocks/data';
@@ -15,7 +16,9 @@ const DEMO: [string, ScanDetail][] = [
 // 분석 진행 화면
 // TODO: GET /scans/{scanId}를 status가 analyzing인 동안 폴링 (TanStack Query refetchInterval)
 export default function AnalysisPage() {
-  const [scan, setScan] = useState<ScanDetail>(mockScan);
+  // 스캔 화면에서 QR로 넘어온 목업이 있으면 그걸로 시작
+  const { state } = useLocation() as { state: { scan?: ScanDetail } | null };
+  const [scan, setScan] = useState<ScanDetail>(state?.scan ?? mockScan);
   return (
     <>
       <ScanWorkspace scan={scan} view={viewOf(scan)} />

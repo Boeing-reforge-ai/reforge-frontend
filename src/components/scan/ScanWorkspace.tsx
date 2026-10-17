@@ -1,17 +1,25 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router';
 import Icon from '@/components/Icon';
-import { CHEM_LABEL, CHIP_NOTE, CRACK_LABEL, LED_CLASS, SCRAP_RESULT, YS_SRC_LABEL, reasonLabel } from '@/lib/labels';
+import MaterialDetail from '@/components/MaterialDetail';
+import type { CameraFeed } from '@/hooks/useQrCamera';
+import { CHIP_NOTE, LED_CLASS, SCRAP_RESULT, reasonLabel } from '@/lib/labels';
 import type { ScanView } from '@/lib/scan';
 import type { ScanDetail } from '@/types/api';
 
-const fmtDim = (d: [number, number, number] | null) => (d ? `${d[0]} × ${d[1]} × ${d[2]} mm` : '—');
 const fmt = (v: number | null | undefined, unit = '') => (v == null ? '—' : `${v}${unit}`);
 
-function ScannerVisual({ view, scan }: { view: ScanView; scan: ScanDetail | null }) {
+interface CameraProps {
+  camera?: CameraFeed;
+  videoRef?: React.Ref<HTMLVideoElement>;
+}
+
+function ScannerVisual({ view, scan, camera, videoRef }: { view: ScanView; scan: ScanDetail | null } & CameraProps) {
+  const live = !scan && camera?.status === 'live';
   return (
     <div className="scanner-view">
       <div className="scanner-grid" />
+      {!scan && camera && <video ref={videoRef} className="scanner-capture" muted playsInline />}
       {scan?.image_url ? (
         <img className="scanner-capture" src={`/api${scan.image_url}`} alt="스캔 캡처 이미지" />
       ) : scan ? (
@@ -30,8 +38,12 @@ function ScannerVisual({ view, scan }: { view: ScanView; scan: ScanDetail | null
         </div>
       )}
       <div className="camera-meta">
-        <span><span className="live-dot" /> CAM 01 · LIVE</span>
-        <span>1920 × 1080</span>
+        {camera && !scan ? (
+          <span>{live ? <><span className="live-dot" /> CAM 01 · LIVE</> : 'CAM 01 · NO SIGNAL'}</span>
+        ) : (
+          <span><span className="live-dot" /> CAM 01 · LIVE</span>
+        )}
+        <span>{live && camera.resolution ? camera.resolution.join(' × ') : '1920 × 1080'}</span>
       </div>
     </div>
   );
@@ -111,81 +123,13 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
   );
 }
 
-function LotDetails({ scan }: { scan: ScanDetail }) {
-  const { lot, measure, condition: c } = scan;
-  const rows: [string, string][] = [
-    ['로트 번호', lot.lot_id],
-    ['소재', lot.grade],
-    ['소재 계열 / 질별', `${lot.fam} / ${lot.temper ?? '—'}`],
-    ['실제 항복강도', fmt(lot.ys, ' MPa')],
-    ['강도값 출처', lot.ys_src ? `${lot.ys_src} · ${YS_SRC_LABEL[lot.ys_src]}` : '—'],
-    ['무게', fmt(measure.kg, ' kg')],
-    ['치수', fmtDim(measure.dim_mm)],
-    ['보유 수량', `${measure.qty}개`],
-  ];
-  const tone = scan.screening === 'GREEN' ? '' : scan.screening === 'YELLOW' ? 'yellow' : 'red';
-  const inspection: [string, string, string][] = [
-    ['화학조성', c?.chem ? CHEM_LABEL[c.chem] : '—', c?.chem ?? '—'],
-    ['균열', c?.crack ? CRACK_LABEL[c.crack] : '—', 'NDT'],
-    ['표면 제거 여유', fmt(measure.allow_mm, ' mm'), 'ALLOW'],
-    ['밀도 오차', scan.density_err == null ? '—' : `${(scan.density_err * 100).toFixed(2)}%`, 'PASS < 5%'],
-    ['즉시 RED 게이트', scan.screening === 'RED' && scan.condition_score == null ? '해당' : scan.screening ? '통과' : '—', 'GATE'],
-    ['성적서', lot.cert ? '보유' : '미보유', 'CERT'],
-  ];
-  const surface: [string, number | null | undefined, string][] = [
-    ['오일', c?.oil, 'wt.%'], ['이종금속', c?.foreign, 'wt.%'], ['먼지', c?.dust, 'wt.%'], ['산화', c?.oxide, '%'],
-    ['코팅', c?.coat, '%'], ['부식', c?.corr, '%'], ['스크래치', c?.scratch, '%'], ['변형률', c?.deform, '%'],
-  ];
-
-  return (
-    <div className="space-y-5">
-      <section>
-        <div className="section-kicker">LOT INFORMATION</div>
-        <div className="info-table">
-          {rows.map(([key, value]) => <div className="info-row" key={key}><span>{key}</span><strong>{value}</strong></div>)}
-        </div>
-      </section>
-      {/* 품질 섹션은 판정 완료 후에만 표시 */}
-      {c && scan.status === 'done' && (
-        <section>
-          <div className="section-kicker inspection-heading">
-            <span>QUALITY & TRACEABILITY</span>
-            {scan.screening && (
-              <b className={tone}><Icon name="check" className="size-3" /> {scan.condition_score != null ? `상태 점수 ${scan.condition_score} ` : ''}{scan.screening}{scan.needs_review ? ' · 검토 필요' : ''}</b>
-            )}
-          </div>
-          <div className="inspection-grid">
-            {inspection.map(([label, value, code]) => (
-              <div className="inspection-item" key={label}><span>{label}</span><strong>{value}</strong><i>{code}</i></div>
-            ))}
-          </div>
-          <div className="surface-matrix">
-            <div className="surface-title"><span>표면 · 오염 검사</span><b>NDT</b></div>
-            <div className="surface-values">
-              {surface.map(([label, value, unit]) => (
-                <div key={label}><span>{label}</span><strong>{value ?? '—'}<small>{unit}</small></strong></div>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        <article className="mini-card">
-          <div className="mini-title"><Icon name="file" className="size-4" /> 재질증명서</div>
-          <b>{lot.cert ? '보유' : '미보유'}</b><span>{lot.lot_id}</span><span>{lot.ys_src ? `강도 출처 ${YS_SRC_LABEL[lot.ys_src]}` : '강도값 없음 (대표값 사용)'}</span>
-        </article>
-        <article className="mini-card">
-          <div className="mini-title"><Icon name="scan" className="size-4" /> 스캔 기록</div>
-          <b>SCAN #{String(scan.scan_id).padStart(4, '0')}</b><span>STATION 01</span><span>{new Date(scan.created_at).toLocaleString('ko-KR')}</span>
-        </article>
-      </div>
-    </div>
-  );
-}
-
 const PROGRESS_STEPS: [string, number][] = [['유형 판정', 0], ['소재 식별', 20], ['RED 게이트', 50], ['밀도 검증', 65], ['상태 점수', 80]];
 
-export default function ScanWorkspace({ scan, view }: { scan: ScanDetail | null; view: ScanView }) {
+export default function ScanWorkspace({ scan, view, camera, videoRef, caption }: {
+  scan: ScanDetail | null;
+  view: ScanView;
+  caption?: [string, string]; // idle 안내 문구 대체 (카메라 오류, QR 형식 오류)
+} & CameraProps) {
   const navigate = useNavigate();
   const ledClass = view === 'done' && scan?.led ? LED_CLASS[scan.led] : '';
 
@@ -196,13 +140,13 @@ export default function ScanWorkspace({ scan, view }: { scan: ScanDetail | null;
           <div><p>SCRAP IDENTIFICATION</p><h1>자투리 스캔 및 유형 판정</h1></div>
           <span className="station-chip"><span className={`station-led ${ledClass}`} /> STATION 01</span>
         </div>
-        <ScannerVisual view={view} scan={scan} />
+        <ScannerVisual view={view} scan={scan} camera={camera} videoRef={videoRef} />
         {view === 'done' && scan ? (
           <DecisionCard key={scan.scan_id} scan={scan} />
         ) : view === 'idle' || view === 'failed' ? (
           <div className="scan-caption">
-            <div className="caption-icon"><Icon name={view === 'idle' ? 'scan' : 'x'} /></div>
-            <div><strong>{CAPTION[view][0]}</strong><span>{CAPTION[view][1]}</span></div>
+            <div className="caption-icon"><Icon name={view === 'idle' && !caption ? 'scan' : 'x'} /></div>
+            <div><strong>{(caption ?? CAPTION[view])[0]}</strong><span>{(caption ?? CAPTION[view])[1]}</span></div>
           </div>
         ) : scan && (
           <div className="progress-card">
@@ -231,7 +175,7 @@ export default function ScanWorkspace({ scan, view }: { scan: ScanDetail | null;
               <button className="secondary-button" onClick={() => navigate('/')}><Icon name="refresh" /> 다시 스캔</button>
             </div>
           ) : (
-            <LotDetails scan={scan} />
+            <MaterialDetail scan={scan} />
           )}
         </div>
       </aside>
