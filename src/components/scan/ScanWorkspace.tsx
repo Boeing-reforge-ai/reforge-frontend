@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import Icon from '@/components/Icon';
 import MaterialDetail from '@/components/MaterialDetail';
 import type { CameraFeed } from '@/hooks/useQrCamera';
-import { CHIP_NOTE, LED_CLASS, SCRAP_RESULT, reasonLabel } from '@/lib/labels';
+import { LED_CLASS, SCRAP_RESULT, reasonLabel } from '@/lib/labels';
 import type { ScanView } from '@/lib/scan';
 import type { ScanDetail } from '@/types/api';
 
@@ -58,12 +58,12 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
   const navigate = useNavigate();
   const type = scan.scrap_type ?? '덩어리형';
   const tone = LED_CLASS[scan.led ?? 'G'];
-  const reusable = !!scan.reusable;
+  const screening = scan.screening ?? 'GREEN';
   const [countdown, setCountdown] = useState(5);
-  // TODO: 칩형·오염형 자동 복귀 임시 해제 중. 복구 시 `!reusable`로 되돌리기
-  const autoReturn = !reusable && type === '덩어리형';
+  // TODO: 오염형 자동 복귀 임시 해제 중. 복구 시 `screening === 'RED'`로 되돌리기
+  const autoReturn = screening === 'RED' && type === '덩어리형';
 
-  // 재사용 불가 자투리는 5초 뒤 스캔 대기 화면으로 복귀
+  // 빨강 자투리는 5초 뒤 스캔 대기 화면으로 복귀 (노랑은 조치 확인을 위해 머무름)
   useEffect(() => {
     if (!autoReturn) return;
     const timer = window.setInterval(() => setCountdown((v) => v - 1), 1000);
@@ -73,13 +73,11 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
     if (autoReturn && countdown <= 0) navigate('/');
   }, [countdown, autoReturn, navigate]);
 
-  // 재사용 불가 덩어리형만 유형 아래에 사유 라벨을 표시
-  const stacked = type === '덩어리형' && !reusable;
-  const label = stacked ? (scan.screening === 'RED' ? '재사용 불가' : '추가 검토 대상') : SCRAP_RESULT[type].label;
-  const note =
-    type === '칩형' ? CHIP_NOTE[scan.lot.fam]
-    : scan.reason_codes.length ? `${scan.reason_codes.map(reasonLabel).join(', ')}`
-    : '';
+  // 빨강 덩어리형만 유형 아래에 사유 라벨을 표시
+  const stacked = type === '덩어리형' && screening === 'RED';
+  const label = stacked ? '재사용 불가' : screening === 'YELLOW' ? '추가 확인 필요' : SCRAP_RESULT[type].label;
+  const note = scan.reason_codes.map(reasonLabel).join(', ');
+  const density = fmt(scan.density_err == null ? null : +(scan.density_err * 100).toFixed(2), '%');
 
   return (
     <div className={`decision-card camera-decision ${tone}`}>
@@ -92,25 +90,36 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
           <b>{label}</b>
         </div>
       </div>
-      {reusable ? (
+      {screening === 'GREEN' && (
         <>
           <div className="system-verdict">
-            <div><span>상태 점수</span><strong>{scan.condition_score}<small>/ 100</small></strong></div>
-            <div><span>즉시 RED 게이트</span><strong className="pass"><Icon name="check" /> 통과</strong></div>
-            <div><span>밀도 교차검증</span><strong className="pass">{fmt(scan.density_err == null ? null : +(scan.density_err * 100).toFixed(2), '%')} · 정상</strong></div>
+            <div><span>상태 점수 (참고)</span><strong>{scan.condition_score}<small>/ 100</small></strong></div>
+            <div><span>빨강·노랑 트리거</span><strong className="pass"><Icon name="check" /> 없음</strong></div>
+            <div><span>밀도 교차검증</span><strong className="pass">{density} · 정상</strong></div>
           </div>
-          {/* <p>
-            {scan.needs_review ? '상태 점수가 경계 구간(75~85)이라 엔지니어 검토가 필요합니다. ' : ''}
-            {scan.reason_codes.length ? `참고: ${scan.reason_codes.map(reasonLabel).join(', ')}. ` : '화학조성, 균열, 오염 항목이 모두 GREEN 구간입니다. '}
-            재가공 소재로 사용할 수 있습니다.
-          </p> */}
           <div className="decision-actions">
             {/* TODO: POST /scenarios/generate 호출 후 이동 */}
             <button className="primary-button" onClick={() => navigate(`/scans/${scan.scan_id}/scenarios`)}><Icon name="spark" /> AI 분석 시작 <Icon name="arrow" /></button>
             <button className="cancel-button" onClick={() => navigate('/')}>돌아가기</button>
           </div>
         </>
-      ) : (
+      )}
+      {screening === 'YELLOW' && (
+        <>
+          <div className="yellow-actions">
+            <span>추가 확인 {scan.yellow_actions.length}건 · 조치 후 다시 스캔</span>
+            {scan.yellow_actions.map((a) => (
+              <div key={a.action}><b>{a.action}</b><small>{a.items.join(', ')}</small></div>
+            ))}
+          </div>
+          <div className="decision-actions">
+            {/* TODO: POST /scenarios/generate 호출 후 이동 */}
+            <button className="primary-button" onClick={() => navigate(`/scans/${scan.scan_id}/scenarios`)}><Icon name="spark" /> 확인 통과 시 후보 보기 <Icon name="arrow" /></button>
+            <button className="cancel-button" onClick={() => navigate('/')}>돌아가기</button>
+          </div>
+        </>
+      )}
+      {screening === 'RED' && (
         <div className="reject-content">
           <p>{note}</p>
           <div className="bin-callout">
@@ -123,7 +132,7 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
   );
 }
 
-const PROGRESS_STEPS: [string, number][] = [['유형 판정', 0], ['소재 식별', 20], ['RED 게이트', 50], ['밀도 검증', 65], ['상태 점수', 80]];
+const PROGRESS_STEPS: [string, number][] = [['유형 판정', 0], ['소재 식별', 20], ['빨강·노랑 트리거', 50], ['밀도 검증', 65], ['상태 점수', 80]];
 
 export default function ScanWorkspace({ scan, view, camera, videoRef, caption }: {
   scan: ScanDetail | null;

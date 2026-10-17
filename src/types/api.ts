@@ -1,8 +1,8 @@
 // 백엔드 API 응답 타입 (Notion API 명세서 기준)
 
 export type Led = 'G' | 'Y' | 'R';
-export type Shape = 'LUMP' | 'CHIP' | 'CONTAM';
-export type ScrapType = '덩어리형' | '칩형' | '오염형';
+export type Shape = 'LUMP' | 'CONTAM';
+export type ScrapType = '덩어리형' | '오염형';
 export type Screening = 'GREEN' | 'YELLOW' | 'RED';
 export type ScanStatus = 'analyzing' | 'done' | 'failed';
 export type Usage = '목업' | 'EM' | '지그' | '보조도구';
@@ -59,6 +59,12 @@ export interface ItemScores {
   struct: number;
 }
 
+// 노랑(추가 확인) 조치. 같은 조치로 확인할 항목을 묶음
+export interface YellowAction {
+  action: string;
+  items: string[];
+}
+
 export interface ScanDetail {
   scan_id: number;
   status: ScanStatus;
@@ -71,10 +77,11 @@ export interface ScanDetail {
   led: Led | null;
   condition_score: number | null;
   screening: Screening | null;
-  needs_review: boolean;
+  needs_review: boolean; // 폐지 (항상 false)
   item_scores: ItemScores | null;
   density_err: number | null;
   reason_codes: string[];
+  yellow_actions: YellowAction[]; // 노랑일 때만 채워짐
   reusable: boolean | null;
   error: string | null;
   created_at: string;
@@ -117,6 +124,7 @@ export interface ScenarioResult {
   scenarios: Scenario[];
   baseline: { name: string; score: number };
   recommended_id: number | null;
+  conditional: boolean; // 노랑: 추가 확인 통과 시 후보
 }
 
 export interface Part {

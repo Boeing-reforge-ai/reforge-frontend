@@ -2,14 +2,14 @@ import { useState } from 'react';
 import { useLocation } from 'react-router';
 import ScanWorkspace from '@/components/scan/ScanWorkspace';
 import { viewOf } from '@/lib/scan';
-import { mockAnalyzingScan, mockChipScan, mockContamScan, mockScan } from '@/mocks/data';
+import { mockAnalyzingScan, mockContamScan, mockScan, mockYellowScan } from '@/mocks/data';
 import type { ScanDetail } from '@/types/api';
 
 const DEMO: [string, ScanDetail][] = [
   ['판정 중', mockAnalyzingScan],
-  ['덩어리', mockScan],
-  ['칩', mockChipScan],
-  ['오염', mockContamScan],
+  ['초록', mockScan],
+  ['노랑', mockYellowScan],
+  ['빨강', mockContamScan],
   ['실패', { ...mockAnalyzingScan, status: 'failed', error: 'QR 데이터의 소재 정보를 확인할 수 없습니다.' }],
 ];
 

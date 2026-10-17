@@ -1,15 +1,18 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { AiBadge } from '@/components/Brand';
 import Icon from '@/components/Icon';
 import MaterialDetail from '@/components/MaterialDetail';
-import { USAGE_STAGE_LABEL, won } from '@/lib/labels';
-import { mockParts, mockPlans, mockScan, mockScenarios } from '@/mocks/data';
-import type { Part, ScanDetail, Scenario } from '@/types/api';
+import { LED_CLASS, USAGE_STAGE_LABEL, won } from '@/lib/labels';
+import { mockParts, mockPlans, mockScan, mockScenarios, mockYellowScan, mockYellowScenarios } from '@/mocks/data';
+import type { Part, ScanDetail, Scenario, ScenarioResult } from '@/types/api';
 
 // TODO: GET /scans/{scanId}, GET /scans/{scanId}/scenarios(없으면 POST /scenarios/generate), GET /parts, GET /production-plans로 교체
-const scan = mockScan;
-const result = mockScenarios;
+const MOCK_BY_SCAN: Record<number, [ScanDetail, ScenarioResult]> = {
+  [mockScan.scan_id]: [mockScan, mockScenarios],
+  [mockYellowScan.scan_id]: [mockYellowScan, mockYellowScenarios],
+};
+const PILL_LABEL = { GREEN: '초록', YELLOW: '노랑 · 추가 확인', RED: '빨강' } as const;
 const partsById = Object.fromEntries(mockParts.map((p) => [p.part_id, p])) as Record<string, Part>;
 const demandById = mockPlans.reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.part_id]: (acc[p.part_id] ?? 0) + p.quantity }), {});
 
@@ -26,7 +29,7 @@ function usableDims(s: ScanDetail) {
   return (s.measure.dim_mm ?? [0, 0, 0]).map((d) => +(d - 2 * a).toFixed(1)).sort((x, y) => y - x);
 }
 
-function LotSummaryBar({ detail, onToggle }: { detail: boolean; onToggle: () => void }) {
+function LotSummaryBar({ scan, detail, onToggle }: { scan: ScanDetail; detail: boolean; onToggle: () => void }) {
   const [w, d, h] = scan.measure.dim_mm ?? [0, 0, 0];
   return (
     <div className="lot-summary">
@@ -34,7 +37,7 @@ function LotSummaryBar({ detail, onToggle }: { detail: boolean; onToggle: () => 
       <div><span>소재</span><span><strong>{scan.lot.grade}</strong><small>{scan.lot.temper}</small></span></div>
       <div><span>무게</span><strong>{scan.measure.kg}<small> kg</small></strong></div>
       <div><span>치수</span><strong>{w} × {d} × {h}<small> mm</small></strong></div>
-      <div className="reusable-pill">{scan.scrap_type} · {scan.condition_score}</div>
+      <div className={`reusable-pill ${LED_CLASS[scan.led ?? 'G']}`}>{scan.scrap_type} · {PILL_LABEL[scan.screening ?? 'GREEN']}</div>
       <button className={`lot-detail-toggle ${detail ? 'active' : ''}`} onClick={onToggle}>
         자세히 보기 <Icon name="chevron" className={`size-4 ${detail ? '-rotate-90' : 'rotate-90'}`} />
       </button>
@@ -51,7 +54,9 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
-function ScenarioCard({ scenario, selected, onSelect }: { scenario: Scenario; selected: boolean; onSelect: () => void }) {
+function ScenarioCard({ scan, result, scenario, selected, onSelect }: {
+  scan: ScanDetail; result: ScenarioResult; scenario: Scenario; selected: boolean; onSelect: () => void;
+}) {
   const [expanded, setExpanded] = useState(false);
   const recommended = scenario.scenario_id === result.recommended_id;
   const m = metricsOf(scenario);
@@ -64,7 +69,7 @@ function ScenarioCard({ scenario, selected, onSelect }: { scenario: Scenario; se
 
   return (
     <article className={`scenario-card ${selected ? 'selected' : ''} ${recommended ? 'recommended' : ''}`} onClick={onSelect}>
-      {recommended && <div className="recommend-ribbon"><Icon name="spark" className="size-4" /> 추천 시나리오</div>}
+      {recommended && <div className="recommend-ribbon"><Icon name="spark" className="size-4" /> {result.conditional ? '확인 통과 시 추천' : '추천 시나리오'}</div>}
       <div className="scenario-select"><span className="radio">{selected && <span />}</span> 선택</div>
       <div className="scenario-main">
         <div className="scenario-copy">
@@ -127,8 +132,7 @@ function ScenarioCard({ scenario, selected, onSelect }: { scenario: Scenario; se
   );
 }
 
-function Comparison({ selectedId }: { selectedId: number }) {
-  const list = result.scenarios;
+function Comparison({ list, selectedId }: { list: Scenario[]; selectedId: number }) {
   const rows: [string, (s: Scenario) => number, (v: number) => string, 'max' | 'min'][] = [
     ['우선순위 점수 P', (s) => s.score, (v) => `${v}점`, 'max'],
     ['재료 활용률', (s) => metricsOf(s).utilization, (v) => `${v}%`, 'max'],
@@ -161,6 +165,8 @@ function Comparison({ selectedId }: { selectedId: number }) {
 
 export default function ScenarioPage() {
   const navigate = useNavigate();
+  const { scanId } = useParams();
+  const [scan, result] = MOCK_BY_SCAN[Number(scanId)] ?? MOCK_BY_SCAN[mockScan.scan_id];
   const [selected, setSelected] = useState(result.recommended_id ?? result.scenarios[0].scenario_id);
   const [showRejected, setShowRejected] = useState(false);
   const [compare, setCompare] = useState(false);
@@ -169,7 +175,7 @@ export default function ScenarioPage() {
 
   return (
     <>
-      <LotSummaryBar detail={detail} onToggle={() => setDetail(!detail)} />
+      <LotSummaryBar scan={scan} detail={detail} onToggle={() => setDetail(!detail)} />
       {/* 자세히 보기: 바 아래로 펼쳐지며 본문을 밀어냄 */}
       {detail && (
         <div className="lot-detail-panel">
@@ -209,18 +215,25 @@ export default function ScenarioPage() {
         </section>
         <section className="content-section recommendation-section">
           <div className="section-title"><div><p>RECOMMENDATION</p><h2>시나리오 추천 순위</h2></div><b>총 {result.scenarios.length}개 시나리오</b></div>
+          {/* 노랑: 추가 확인을 통과해야 후보로 확정 */}
+          {result.conditional && (
+            <div className="conditional-note">
+              <strong><Icon name="file" className="size-4" /> 추가 확인 {scan.yellow_actions.length}건을 통과해야 확정되는 후보입니다</strong>
+              <ul>{scan.yellow_actions.map((a) => <li key={a.action}><b>{a.action}</b> {a.items.join(', ')}</li>)}</ul>
+            </div>
+          )}
           <div className="scenario-list">
-            {result.scenarios.map((s) => <ScenarioCard key={s.scenario_id} scenario={s} selected={selected === s.scenario_id} onSelect={() => setSelected(s.scenario_id)} />)}
+            {result.scenarios.map((s) => <ScenarioCard key={s.scenario_id} scan={scan} result={result} scenario={s} selected={selected === s.scenario_id} onSelect={() => setSelected(s.scenario_id)} />)}
           </div>
           <article className="baseline-card">
             <div><span>BASELINE</span><strong>{result.baseline.name}</strong><p>재활용 없이 신규 {scan.lot.grade} 소재 구매</p></div>
             <div className="baseline-metrics">{['활용률 0%', '가공 0회', '수요 충족 0%', '순회수 ₩0'].map((t) => <span key={t}>{t}</span>)}</div>
           </article>
         </section>
-        {compare && <Comparison selectedId={selected} />}
+        {compare && <Comparison list={result.scenarios} selectedId={selected} />}
       </main>
       <div className="selection-bar">
-        <div><span>선택한 시나리오</span><strong>{scenario.parts.map((p) => p.name).join(' + ')}</strong><i>우선순위 점수 P {scenario.score}점</i></div>
+        <div><span>선택한 시나리오</span><strong>{scenario.parts.map((p) => p.name).join(' + ')}</strong><i>우선순위 점수 P {scenario.score}점{result.conditional ? ' · 확인 통과 시' : ''}</i></div>
         <div className="selection-actions">
           <button className="cancel-button dark" onClick={() => navigate('/')}><Icon name="x" /></button>
           {/* TODO: POST /proposals/generate { scan_id, scenario_id } 후 /proposals/{proposal_id}로 이동 */}

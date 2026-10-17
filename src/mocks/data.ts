@@ -1,4 +1,4 @@
-// API 연결 전 화면 확인용 목업. 값은 시제품 T1(깨끗한 Ti 블록)의 실제 백엔드 계산 결과
+// API 연결 전 화면 확인용 목업. 값은 시제품 T1·T2·T4의 실제 백엔드 계산 결과
 import type { Part, ProductionPlan, Proposal, ScanDetail, ScenarioResult } from '@/types/api';
 
 export const mockScan: ScanDetail = {
@@ -22,6 +22,7 @@ export const mockScan: ScanDetail = {
   item_scores: { chem: 100, foreign: 96, surface: 95, oil: 90, coating: 100, struct: 95 },
   density_err: 0.0003,
   reason_codes: [],
+  yellow_actions: [],
   reusable: true,
   error: null,
   created_at: '2026-10-20T05:32:10+00:00',
@@ -34,14 +35,28 @@ export const mockAnalyzingScan: ScanDetail = {
   condition_score: null, screening: null, item_scores: null, density_err: null, reusable: null,
 };
 
-// T3 Ti 칩
-export const mockChipScan: ScanDetail = {
+// T2 산화된 Ti 블록 (노랑: 오일·산화·스크래치·변형이 가드밴드 진입)
+export const mockYellowScan: ScanDetail = {
   ...mockScan,
-  scan_id: 3,
-  lot: { ...mockScan.lot, lot_id: 'LOT-2026-0103', ys: null, ys_src: null },
-  measure: { dim_mm: null, kg: 0.15, allow_mm: null, qty: 1 },
-  condition: null, scrap_type: '칩형', led: 'Y',
-  condition_score: null, screening: null, item_scores: null, density_err: null, reusable: false,
+  scan_id: 2,
+  lot: { ...mockScan.lot, lot_id: 'LOT-2026-0102' },
+  measure: { dim_mm: [70, 45, 18], kg: 0.251, allow_mm: 1.0, qty: 1 },
+  condition: {
+    chem: 'IN', crack: 'none', foreign: 0.01, oil: 0.4, dust: 0.01,
+    coat: 0, oxide: 15, corr: 0, scratch: 3, deform: 3, flags: [],
+  },
+  led: 'Y',
+  condition_score: 84.2,
+  screening: 'YELLOW',
+  item_scores: { chem: 100, foreign: 96, surface: 53.3, oil: 70, coating: 100, struct: 66.7 },
+  density_err: 0.0007,
+  reason_codes: ['oil_warn', 'oxide_warn', 'scratch_warn', 'deform_warn'],
+  yellow_actions: [
+    { action: '세척 후 재측정', items: ['오일 0.4wt.%'] },
+    { action: '표면 절삭 후 치수 재확인', items: ['산화 15%', '스크래치 3%'] },
+    { action: '평탄도 측정', items: ['변형 3%'] },
+  ],
+  reusable: false,
 };
 
 // T4 오염 Al 블록
@@ -117,18 +132,40 @@ export const mockScenarios: ScenarioResult = {
   ],
   baseline: { name: '신규 소재 구매', score: 0 },
   recommended_id: 1,
+  conditional: false,
+};
+
+// T2 노랑: 가용 치수 68×43×16 mm라 C-03만 통과 (추가 확인 통과 시 후보)
+export const mockYellowScenarios: ScenarioResult = {
+  candidates: [{ part_id: 'C-03', name: 'Ti 규격 블랭크' }],
+  rejected: [
+    { part_id: 'C-01', name: '조립 치구', filter_type: 'shape', reason: '가용 치수 68×43×16 mm가 최소 100×60×25 mm보다 작음' },
+    { part_id: 'C-02', name: '위성 브래킷 목업', filter_type: 'shape', reason: '가용 치수 68×43×16 mm가 최소 90×50×20 mm보다 작음' },
+  ],
+  scenarios: [
+    {
+      scenario_id: 4, rank: 1, parts: [{ part_id: 'C-03', name: 'Ti 규격 블랭크' }], usage: '보조도구',
+      required_docs: ['원본 재질증명서 (LOT 성적서)'],
+      reason: '성적서 YS 828 MPa가 요구 828 MPa를 충족하지만, 오일·산화·스크래치·변형 추가 확인을 통과해야 블랭크로 사용할 수 있습니다.',
+      breakdown: { material: 35, geometry: 16.5, economics: 15, demand: 3.8, circularity: 2 },
+      nrv: 12000, sell_price: 20000, score: 72.3,
+    },
+  ],
+  baseline: { name: '신규 소재 구매', score: 0 },
+  recommended_id: 4,
+  conditional: true,
 };
 
 export const mockProposal: Proposal = {
   proposal_id: 1,
   scan_id: 1,
   scenario_id: 1,
-  title: 'Ti-6Al-4V 자투리 조립 치구 전환 제안서',
-  summary: 'LOT-2026-0101의 깨끗한 Ti-6Al-4V 블록을 C-01 조립 치구로 전환해 신규 소재 구매 없이 공정 치구를 제작합니다.',
+  title: 'Ti-6Al-4V 잔재(LOT-2026-0101) 조립 치구 전환 재사용 처분 승인 요청',
+  summary: '중앙 스캔 스테이션에서 초록(재사용 가능, 로트 추적 유지)으로 판정된 Ti-6Al-4V 잔재 1건을 신규 원자재 구매 없이 공정용 조립 치구(C-01) 제작에 사용하고자, 재사용 처분에 대한 품질보증팀의 승인을 요청합니다.',
   sections: {
-    judgment_basis: '즉시 RED 게이트를 통과했고 상태 점수는 96.7 GREEN입니다. 성적서 기준 항복강도 828 MPa가 C-01 요구 600 MPa를 충족합니다.',
+    judgment_basis: '빨강·노랑 트리거가 없고 모든 측정 항목이 가드밴드 밖에 있어 초록으로 판정했습니다. 재질증명서 강도값을 승계하므로 지상 공정용 치구 용도로 추가 시험 없이 사용할 수 있습니다.',
     required_docs: '원본 재질증명서 (LOT 성적서)\n치수 검사 성적서',
-    machining_plan: '각 면에서 0.5 mm를 제거한 가용 형상을 기준으로 1회 셋업 가공합니다. 소재 식별 마킹을 보존하고 완료 후 주요 치수를 전수 검사합니다.',
+    machining_plan: '가용 형상 119 × 79 × 34 mm 안에서 치구 형상을 배치해 1회 셋업으로 가공합니다. 정삭 전에 기존 식별 표시의 로트 번호를 기록해 두고, 가공 후 각인으로 옮깁니다.',
     expected_effect: '신규 소재 대신 0.95 kg을 재사용해 180,000원의 순회수 가치를 얻고, 소재 활용률 64%를 달성합니다.',
   },
   metrics: { utilization: 0.64, reprocess_count: 1, saved_kg: 0.95, saved_krw: 180000 },

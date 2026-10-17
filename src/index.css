@@ -107,6 +107,13 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .measure-cell { min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 10px 14px; border-left: 1px solid #e4e9ef; }
 .measure-cell:first-child { border-left: 0; padding-left: 4px; }
 .measure-cell span { color: #78869a; font-size: 13px; } .measure-cell strong { color: #1b2d46; font-size: 15px; font-weight: 700; font-variant-numeric: tabular-nums; }
+/* 노랑 재검 대상 · 빨강 용해 사유 항목 */
+.measure-cell.recheck, .info-row.recheck { background: #fffbea; box-shadow: inset 0 -2px #e8c547; }
+.measure-cell.recheck strong, .info-row.recheck strong { color: #8a6a00; }
+.measure-cell.reject, .info-row.reject { background: #fff4f4; box-shadow: inset 0 -2px #e57a84; }
+.measure-cell.reject strong, .info-row.reject strong { color: #b1323e; }
+.mark-tag { display: inline-block; margin-left: 6px; padding: 1px 6px; border-radius: 999px; font-size: 10px; font-weight: 800; font-style: normal; line-height: 16px; vertical-align: 1px; }
+.mark-tag.recheck { background: #f5d64e; color: #5c4700; } .mark-tag.reject { background: #f6c3c8; color: #8b2730; }
 .mini-card { border: 1px solid #dfe5ec; border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 4px; color: #78869a; font-size: 12px; }
 .mini-card b { color: #1c304c; font-size: 14px; margin-top: 2px; } .mini-title { display: flex; gap: 6px; color: #506078; font-size: 12px; font-weight: 700; }
 .progress-card { margin-top: 20px; background: #f1f6fd; border: 1px solid #d4e2f4; border-radius: 9px; padding: 16px; }
@@ -144,6 +151,10 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .primary-button { border: 0; border-radius: 7px; background: #1d6fe0; color: white; height: 44px; padding: 0 17px; display: flex; align-items: center; justify-content: center; gap: 9px; font-weight: 750; font-size: 15px; cursor: pointer; }
 .primary-button:hover { background: #1758b3; }
 .primary-button:disabled { background: #94a3b8; box-shadow: none; cursor: not-allowed; }
+.yellow-actions { background: #ffffffb8; border: 1px solid #efdf9c; border-radius: 7px; margin: 9px 0 11px; overflow: hidden; }
+.yellow-actions > span { display: block; padding: 8px 12px; background: #fff3c4; color: #7a5d00; font-size: 12px; font-weight: 700; }
+.yellow-actions > div { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding: 9px 12px; border-top: 1px solid #f3e7b5; }
+.yellow-actions b { color: #4f3d00; font-size: 14px; } .yellow-actions small { color: #8a7536; font-size: 12px; text-align: right; }
 .decision-actions { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
 .decision-actions .primary-button { width: 100%; }
 .cancel-button { height: 44px; padding: 0 13px; border: 1px solid #cdd7e2; border-radius: 7px; background: white; color: #68788c; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; }
@@ -163,6 +174,10 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .lot-summary > div:not(.reusable-pill) { min-width: 180px; padding: 0 28px; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; } .lot-summary > div:first-child { padding-left: 0; }
 .lot-summary span { color: #8591a1; font-size: 11px; margin-bottom: 3px; } .lot-summary strong { color: #1a2e49; font-size: 18px; font-variant-numeric: tabular-nums; } .lot-summary small { color: #77869a; font-size: 11px; margin-left: 5px; }
 .lot-summary .reusable-pill { margin-left: auto; display: flex; align-items: center; gap: 8px; color: #15734e; background: #edfaf4; border: 1px solid #b9e8d1; border-radius: 999px; padding: 8px 12px; font-size: 12px; font-weight: 700; } .reusable-pill .status-dot { width: 7px; height: 7px; }
+.lot-summary .reusable-pill.yellow { color: #8a6a00; background: #fff8dc; border-color: #f0dc8e; } .lot-summary .reusable-pill.red { color: #a5303b; background: #fff1f2; border-color: #f3c0c5; }
+.conditional-note { margin: 0 0 16px; padding: 14px 18px; background: #fffbea; border: 1px solid #eed67a; border-radius: 9px; color: #6b5300; }
+.conditional-note strong { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+.conditional-note ul { margin: 8px 0 0; padding-left: 24px; list-style: disc; font-size: 13px; color: #8a7536; } .conditional-note li b { color: #5c4700; margin-right: 6px; }
 .scenario-page { max-width: 1340px; margin: auto; padding: 36px 0 130px; }
 .page-intro, .proposal-top { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 28px; } .page-intro h1, .proposal-top h1 { font-size: 38px; } .page-intro > div > span, .proposal-top > div > span { display: block; color: #718096; font-size: 15px; margin-top: 6px; }
 .proposal-top { width: 1324px; margin-left: auto; margin-right: auto; }
@@ -233,7 +248,9 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .official table { width: 100%; border-collapse: collapse; }
 .official th, .official td { border: 1px solid #d5dbe3; padding: 8px 12px; text-align: left; vertical-align: middle; font-weight: 400; }
 .official th { background: #f1f4f8; font-weight: 600; color: #5b6676; }
-.official .num { text-align: right; font-variant-numeric: tabular-nums; }
+/* 표 정렬: 헤더는 열 내용과 같은 방향 (글자 왼쪽, 숫자 .num 오른쪽, 판정값 .center 가운데) */
+.official .num { text-align: right; font-variant-numeric: tabular-nums; } .official .center { text-align: center; }
+.doc-table.steps th:first-child, .doc-table.steps td:first-child { width: 56px; }
 .doc-meta th { width: 17%; } .doc-meta td { width: 33%; }
 .doc-subject { margin-top: 30px; padding-bottom: 12px; border-bottom: 2px solid #1b2433; }
 .doc-subject span { color: #6b7686; font-weight: 700; font-size: 13px; }
@@ -244,7 +261,7 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .doc-hero .from { background: #eef1f5; }
 .doc-hero .arrow b { color: #2c7a4b; font-size: 17px; } .doc-hero .arrow small { color: #2c7a4b; }
 .doc-hero .to { background: #e7f3ea; outline-offset: -3px; } .doc-hero .to span, .doc-hero .to strong { color: #1f6b3f; } .doc-hero .to small { color: #3f7454; }
-.doc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid #c6ced9; padding: 8px 0 10px; text-align: center; }
+.doc-kpis { display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 1px solid #c6ced9; padding: 10px 0 10px; text-align: center; }
 .doc-kpis span { display: block; color: #6b7686; font-size: 11px; } .doc-kpis strong { font-size: 16px; font-weight: 800; }
 .doc-kpis .green { color: #2c7a4b; } .doc-kpis .yellow { color: #b7791f; } .doc-kpis .red { color: #c53030; }
 .doc-sec { margin-top: 38px; break-inside: auto; }
@@ -252,7 +269,7 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .doc-sec h3 { font-size: 15px; font-weight: 700; margin: 22px 0 8px 2px; color: #1f2a3a; }
 .doc-table, .doc-kv { border-top: 2px solid #5b6676; }
 .doc-table th, .doc-table td, .doc-kv th, .doc-kv td { border-left: 0; border-right: 0; }
-.doc-table thead th { text-align: center; color: #3b4656; } .doc-table thead th.num { text-align: right; } .doc-table td:first-child { width: 28%; color: #3b4656; }
+.doc-table thead th { color: #3b4656; } .doc-table td:first-child { width: 28%; color: #3b4656; }
 .doc-kv th { width: 24%; } .doc-kv td { color: #111827; font-weight: 500; }
 .doc-result { font-weight: 700; } .doc-result.ok { color: #2c7a4b; } .doc-result.warn { color: #b7791f; } .doc-result.bad { color: #c53030; }
 .doc-text { margin: 0; white-space: pre-line; } .doc-indent { padding-left: 22px; } .doc-gap { margin-top: 10px; }
@@ -262,6 +279,10 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .doc-list.ga { list-style: none; counter-reset: ga; padding-left: 22px; } .doc-list.ga li { counter-increment: ga; text-indent: -1.6em; padding-left: 1.6em; }
 .doc-list.ga li::before { content: counter(ga, hangul) ". "; }
 .doc-end { text-align: right; font-weight: 800; font-size: 15px; margin-top: 10px; }
+/* 엔지니어 의견란: 기본 5줄, 입력하면 내용만큼 늘어남 (인쇄도 같은 최소 높이) */
+.doc-review { margin-top: 22px; break-inside: avoid; } .doc-review th { width: 18%; vertical-align: top; } .doc-review th small { display: block; color: #8a94a3; font-size: 11px; font-weight: 400; margin-top: 2px; } .doc-review td { padding: 0; }
+.doc-review-input { display: block; width: 100%; min-height: 120px; field-sizing: content; border: 0; padding: 9px 12px; font: 13px/1.7 var(--font-sans); color: #1b2433; background: #fbfdff; resize: vertical; } .doc-review-input:focus { outline: 2px solid #8db9ef; outline-offset: -2px; }
+.doc-review-print { display: none; min-height: 120px; padding: 9px 12px; white-space: pre-line; }
 .doc-sign { margin-top: 18px; break-inside: avoid; } .doc-sign th:first-child { width: 14%; } .doc-sign thead th { text-align: center; } .doc-sign tr.tall td { height: 70px; }
 .doc-history { font-size: 11px; color: #6b7686; margin: 14px 0 0; } .doc-history b, .doc-ai b { color: #1b2433; margin-right: 6px; }
 .doc-ai { font-size: 11px; color: #4b5563; margin: 6px 0 0; }
@@ -274,6 +295,7 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
   @page { size: A4; margin: 16mm 14mm 18mm; @bottom-center { content: "본 문서는 Reforge AI가 생성한 초안이며, 승인권자의 검토·서명 후 효력이 발생한다.   " counter(page) " / " counter(pages); font-size: 8pt; color: #9aa3af; } }
   .paper, .paper.official { box-shadow: none; width: 100%; min-height: auto; padding: 0; }
   .doc-edit, .doc-foot { display: none; }
+  .doc-review-input { display: none; } .doc-review-print { display: block; }
   .official tr, .doc-hero, .doc-kpis { break-inside: avoid; }
   .official th { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .doc-hero > div { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
