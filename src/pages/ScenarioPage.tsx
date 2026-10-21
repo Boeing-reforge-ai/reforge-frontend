@@ -3,18 +3,13 @@ import { useNavigate, useParams } from 'react-router';
 import { AiBadge } from '@/components/Brand';
 import Icon from '@/components/Icon';
 import MaterialDetail from '@/components/MaterialDetail';
+import { getErrorMessage } from '@/api/client';
+import { useScan } from '@/hooks/useScan';
+import { useParts, useProductionPlans, useScenarios } from '@/hooks/useScenarios';
 import { LED_CLASS, USAGE_STAGE_LABEL, won } from '@/lib/labels';
-import { mockParts, mockPlans, mockScan, mockScenarios, mockYellowScan, mockYellowScenarios } from '@/mocks/data';
-import type { Part, ScanDetail, Scenario, ScenarioResult } from '@/types/api';
+import type { Part, ProductionPlan, ScanDetail, Scenario, ScenarioResult } from '@/types/api';
 
-// TODO: GET /scans/{scanId}, GET /scans/{scanId}/scenarios(없으면 POST /scenarios/generate), GET /parts, GET /production-plans로 교체
-const MOCK_BY_SCAN: Record<number, [ScanDetail, ScenarioResult]> = {
-  [mockScan.scan_id]: [mockScan, mockScenarios],
-  [mockYellowScan.scan_id]: [mockYellowScan, mockYellowScenarios],
-};
 const PILL_LABEL = { GREEN: '초록', YELLOW: '노랑 · 추가 확인', RED: '빨강' } as const;
-const partsById = Object.fromEntries(mockParts.map((p) => [p.part_id, p])) as Record<string, Part>;
-const demandById = mockPlans.reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.part_id]: (acc[p.part_id] ?? 0) + p.quantity }), {});
 
 // breakdown(축별 점수)에서 화면 지표 계산. 제안서 metrics와 같은 정의
 const metricsOf = (s: Scenario) => ({
@@ -54,13 +49,12 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
-function ScenarioCard({ scan, result, scenario, selected, onSelect }: {
-  scan: ScanDetail; result: ScenarioResult; scenario: Scenario; selected: boolean; onSelect: () => void;
+function ScenarioCard({ scan, result, scenario, part, demand, selected, onSelect }: {
+  scan: ScanDetail; result: ScenarioResult; scenario: Scenario; part?: Part; demand: number; selected: boolean; onSelect: () => void;
 }) {
   const [expanded, setExpanded] = useState(false);
   const recommended = scenario.scenario_id === result.recommended_id;
   const m = metricsOf(scenario);
-  const part = partsById[scenario.parts[0].part_id];
   const certOk = scan.lot.cert;
   const axes: [string, number, number][] = [
     ['소재 M', scenario.breakdown.material, 35], ['형상 G', scenario.breakdown.geometry, 20],
@@ -120,7 +114,7 @@ function ScenarioCard({ scan, result, scenario, selected, onSelect }: {
             <div><span>최소 요구 치수</span><strong>{part.min_dims_mm.join(' × ')} mm</strong><small>가용 {usableDims(scan).join(' × ')} mm</small></div>
             <div><span>최소 항복강도</span><strong>{part.min_ys} MPa</strong><small>{scan.lot.ys ? `실제 ${scan.lot.ys} MPa · 통과` : '대표값 사용'}</small></div>
             <div><span>예상 경제성</span><strong>{won(scenario.sell_price)}</strong><small>비용 {won(scenario.sell_price - scenario.nrv)}</small></div>
-            <div><span>수요 / 재사용 수준</span><strong>생산계획 {demandById[part.part_id] ?? 0}개</strong><small>{part.stage} · {USAGE_STAGE_LABEL[part.stage]}</small></div>
+            <div><span>수요 / 재사용 수준</span><strong>생산계획 {demand}개</strong><small>{part.stage} · {USAGE_STAGE_LABEL[part.stage]}</small></div>
           </div>
           <div className="qualification-flow">
             {['소재 계열 일치', '가용 치수 충족', '요구 강도 충족'].map((item) => <span key={item}><Icon name="check" /> {item}</span>)}
@@ -163,10 +157,46 @@ function Comparison({ list, selectedId }: { list: Scenario[]; selectedId: number
   );
 }
 
+// 시나리오 화면: 스캔 결과 + 시나리오(없으면 생성) + 부품·생산계획 기준 데이터
 export default function ScenarioPage() {
   const navigate = useNavigate();
-  const { scanId } = useParams();
-  const [scan, result] = MOCK_BY_SCAN[Number(scanId)] ?? MOCK_BY_SCAN[mockScan.scan_id];
+  const scanId = Number(useParams().scanId);
+  const scan = useScan(scanId);
+  const scenarios = useScenarios(scanId);
+  const parts = useParts();
+  const plans = useProductionPlans();
+
+  const error = scan.error ?? scenarios.error;
+  if (error) {
+    return (
+      <main className="scenario-page">
+        <div className="error-card">
+          <div className="error-icon"><Icon name="x" /></div>
+          <h2>시나리오를 불러오지 못했습니다.</h2>
+          <p>{getErrorMessage(error)}</p>
+          <button className="secondary-button" onClick={() => navigate('/')}><Icon name="refresh" /> 다시 스캔</button>
+        </div>
+      </main>
+    );
+  }
+  if (!scan.data || !scenarios.data) {
+    return (
+      <main className="scenario-page">
+        <div className="empty-result">
+          <div className="empty-rings"><Icon name="spark" className="size-9" /></div>
+          <strong>재활용 시나리오를 분석하고 있습니다</strong>
+          <span>처음 분석할 때는 AI가 시나리오를 생성하므로<br />시간이 조금 걸릴 수 있습니다.</span>
+        </div>
+      </main>
+    );
+  }
+  return <ScenarioContent scan={scan.data} result={scenarios.data} parts={parts.data ?? []} plans={plans.data ?? []} />;
+}
+
+function ScenarioContent({ scan, result, parts, plans }: { scan: ScanDetail; result: ScenarioResult; parts: Part[]; plans: ProductionPlan[] }) {
+  const navigate = useNavigate();
+  const partsById = Object.fromEntries(parts.map((p) => [p.part_id, p])) as Record<string, Part>;
+  const demandById = plans.reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.part_id]: (acc[p.part_id] ?? 0) + p.quantity }), {});
   const [selected, setSelected] = useState(result.recommended_id ?? result.scenarios[0].scenario_id);
   const [showRejected, setShowRejected] = useState(false);
   const [compare, setCompare] = useState(false);
@@ -223,7 +253,7 @@ export default function ScenarioPage() {
             </div>
           )}
           <div className="scenario-list">
-            {result.scenarios.map((s) => <ScenarioCard key={s.scenario_id} scan={scan} result={result} scenario={s} selected={selected === s.scenario_id} onSelect={() => setSelected(s.scenario_id)} />)}
+            {result.scenarios.map((s) => <ScenarioCard key={s.scenario_id} scan={scan} result={result} scenario={s} part={partsById[s.parts[0].part_id]} demand={demandById[s.parts[0].part_id] ?? 0} selected={selected === s.scenario_id} onSelect={() => setSelected(s.scenario_id)} />)}
           </div>
           <article className="baseline-card">
             <div><span>BASELINE</span><strong>{result.baseline.name}</strong><p>재활용 없이 신규 {scan.lot.grade} 소재 구매</p></div>

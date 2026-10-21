@@ -22,7 +22,14 @@ npm run dev
 
 - 프론트: `http://localhost:5173`
 - 백엔드: `http://localhost:8000` (FastAPI 서버가 먼저 실행되어 있어야 합니다)
-- `/api`로 시작하는 요청은 Vite 프록시를 통해 백엔드로 전달됩니다.
+- `/api`로 시작하는 요청은 Vite 프록시를 통해 백엔드로 전달됩니다. (배포 환경은 `vercel.json` rewrite)
+
+`.env`
+
+| 변수               | 설명                                                              |
+| ------------------ | ----------------------------------------------------------------- |
+| `API_PROXY_TARGET` | 개발 서버 프록시 대상 (기본값 `http://localhost:8000`)            |
+| `VITE_STATION_KEY` | 스캔 등록(`POST /scans`)용 `X-Station-Key`. 백엔드 `STATION_KEY`와 같은 값 |
 
 ## 스크립트
 
