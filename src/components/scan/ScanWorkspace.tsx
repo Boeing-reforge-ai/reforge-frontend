@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import Icon from '@/components/Icon';
 import MaterialDetail from '@/components/MaterialDetail';
 import type { CameraFeed } from '@/hooks/useQrCamera';
 import { LED_CLASS, SCRAP_RESULT, reasonLabel } from '@/lib/labels';
+import { connectLed, sendLed, useLedStatus } from '@/lib/led';
 import type { ScanView } from '@/lib/scan';
 import type { ScanDetail } from '@/types/api';
 
@@ -59,20 +60,6 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
   const type = scan.scrap_type ?? '덩어리형';
   const tone = LED_CLASS[scan.led ?? 'G'];
   const screening = scan.screening ?? 'GREEN';
-  const [countdown, setCountdown] = useState(5);
-  // TODO: 오염형 자동 복귀 임시 해제 중. 복구 시 `screening === 'RED'`로 되돌리기
-  const autoReturn = screening === 'RED' && type === '덩어리형';
-
-  // 빨강 자투리는 5초 뒤 스캔 대기 화면으로 복귀 (노랑은 조치 확인을 위해 머무름)
-  useEffect(() => {
-    if (!autoReturn) return;
-    const timer = window.setInterval(() => setCountdown((v) => v - 1), 1000);
-    return () => window.clearInterval(timer);
-  }, [autoReturn]);
-  useEffect(() => {
-    if (autoReturn && countdown <= 0) navigate('/');
-  }, [countdown, autoReturn, navigate]);
-
   // 빨강 덩어리형만 유형 아래에 사유 라벨을 표시
   const stacked = type === '덩어리형' && screening === 'RED';
   const label = stacked ? '재사용 불가' : screening === 'YELLOW' ? '추가 확인 필요' : SCRAP_RESULT[type].label;
@@ -124,11 +111,23 @@ function DecisionCard({ scan }: { scan: ScanDetail }) {
           <p>{note}</p>
           <div className="bin-callout">
             <div><span>유형 분류</span><strong>{SCRAP_RESULT[type].bin}</strong></div>
-            {autoReturn && <b>{countdown}초 후 자동 복귀</b>}
+            <button className="cancel-button bin-home" onClick={() => navigate('/')}><Icon name="return" className="size-4" /> 처음으로</button>
           </div>
         </div>
       )}
     </div>
+  );
+}
+
+// 스테이션 LED 아두이노 연결 (Chrome·Edge Web Serial). 연결 안 됐을 때만 표시
+// 한 번 허용한 포트는 restoreLed로 자동 재연결되므로 처음 연결·케이블 분리 시에만 보임
+function LedButton() {
+  const status = useLedStatus();
+  if (status === 'connected' || status === 'unsupported') return null;
+  return (
+    <button className="led-button" disabled={status === 'connecting'} onClick={() => void connectLed()}>
+      <span className="led-button-dot" /> {status === 'connecting' ? 'LED 연결 중…' : 'LED 연결'}
+    </button>
   );
 }
 
@@ -142,12 +141,23 @@ export default function ScanWorkspace({ scan, view, camera, videoRef, caption }:
   const navigate = useNavigate();
   const ledClass = view === 'done' && scan?.led ? LED_CLASS[scan.led] : '';
 
+  // 판정이 끝나면 최종 LED 색 전송 (POST /scans 응답의 led는 판정 전 값이라 쓰지 않음)
+  // 결과가 떠 있는 상태에서 나중에 LED를 연결해도 현재 색을 보내도록 연결 상태도 감시
+  const finalLed = view === 'done' ? scan?.led : null;
+  const ledStatus = useLedStatus();
+  useEffect(() => {
+    if (finalLed && ledStatus === 'connected') void sendLed(finalLed);
+  }, [finalLed, ledStatus, scan?.scan_id]);
+
   return (
     <main className="analysis-main">
       <section className="scan-column">
         <div className="page-heading">
           <div><p>SCRAP IDENTIFICATION</p><h1>자투리 스캔 및 유형 판정</h1></div>
-          <span className="station-chip"><span className={`station-led ${ledClass}`} /> STATION 01</span>
+          <div className="station-tools">
+            <LedButton />
+            <span className="station-chip"><span className={`station-led ${ledClass}`} /> STATION 01</span>
+          </div>
         </div>
         <ScannerVisual view={view} scan={scan} camera={camera} videoRef={videoRef} />
         {view === 'done' && scan ? (
