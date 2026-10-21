@@ -1,9 +1,13 @@
 import { useRef, useState, type ReactNode } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { useReactToPrint } from 'react-to-print';
+import { getErrorMessage } from '@/api/client';
 import Icon from '@/components/Icon';
+import { useGenerateProposal, useProposal, useUpdateProposal } from '@/hooks/useProposal';
+import { useScan } from '@/hooks/useScan';
+import { useParts, useScenarios } from '@/hooks/useScenarios';
 import { DENSITY_TOL, GUARD, RHO_REF, THRESHOLDS } from '@/lib/criteria';
 import { USAGE_STAGE_LABEL, YS_SRC_LABEL } from '@/lib/labels';
-import { mockParts, mockProposal, mockScan, mockScenarios } from '@/mocks/data';
 import type { Proposal, Scenario, Screening, Usage } from '@/types/api';
 
 // 편집 가능한 AI 문장 (기대 효과는 7절 표와 겹쳐 표시하지 않음)
@@ -115,10 +119,26 @@ function ProposalSkeleton() {
   );
 }
 
-// TODO: GET /proposals/{proposalId}, GET /scans/{scanId}, 시나리오·부품 조회로 교체. 편집 완료 시 PATCH /proposals/{proposalId}
+// 제안서 화면: 제안서 + 스캔·시나리오·부품으로 문서 구성. 편집 완료 시 PATCH /proposals/{proposalId}
 export default function ProposalPage() {
-  const scan = mockScan;
-  const [proposal, setProposal] = useState<Proposal | null>(mockProposal);
+  const navigate = useNavigate();
+  const proposalId = Number(useParams().proposalId);
+  const proposalQuery = useProposal(proposalId);
+  const scanId = proposalQuery.data?.scan_id ?? NaN;
+  const scanQuery = useScan(scanId);
+  // 조회만: 시나리오를 다시 생성하면 기존 제안서가 지워짐
+  const scenariosQuery = useScenarios(scanId, { generate: false });
+  const allParts = useParts().data ?? [];
+  const save = useUpdateProposal(proposalId);
+  const regenerate = useGenerateProposal();
+
+  // 편집 중인 내용. 저장되면 비우고 서버 값을 다시 표시
+  const [draft, setDraft] = useState<Proposal | null>(null);
+  const proposal = draft ?? proposalQuery.data ?? null;
+  const scan = scanQuery.data;
+  const result = scenariosQuery.data;
+  const loadError = proposalQuery.error ?? scanQuery.error ?? scenariosQuery.error;
+
   const [editing, setEditing] = useState<EditKey | null>(null);
   // TODO: 의견 저장이 필요해지면 PROPOSAL 컬럼 추가 + PATCH
   const [review, setReview] = useState({ reviewer: '', approver: '' });
@@ -127,11 +147,35 @@ export default function ProposalPage() {
 
   const update = (key: EditKey, value: string) => {
     if (!proposal) return;
-    setProposal(key === 'summary'
+    setDraft(key === 'summary'
       ? { ...proposal, summary: value }
       : { ...proposal, sections: { ...proposal.sections, [key]: value } });
   };
-  const edit = (key: EditKey) => ({ on: editing === key, toggle: () => setEditing(editing === key ? null : key) });
+  // 편집을 마치면(완료 또는 다른 항목 편집 시작) 그 항목만 저장
+  const saveField = (key: EditKey) => {
+    if (!draft) return;
+    const sent = draft;
+    save.mutate(key === 'summary' ? { summary: sent.summary } : { sections: { [key]: sent.sections[key] } }, {
+      onSuccess: () => setDraft((d) => (d === sent ? null : d)), // 저장 중에 더 고쳤으면 유지
+    });
+  };
+  const edit = (key: EditKey) => ({
+    on: editing === key,
+    toggle: () => {
+      if (editing) saveField(editing);
+      setEditing(editing === key ? null : key);
+    },
+  });
+  const regenerateProposal = () => {
+    if (!proposal) return;
+    regenerate.mutate({ scanId: proposal.scan_id, scenarioId: proposal.scenario_id }, {
+      onSuccess: (p) => {
+        setDraft(null);
+        setEditing(null);
+        navigate(`/proposals/${p.proposal_id}`);
+      },
+    });
+  };
   const text = (key: EditKey) => (
     <Text
       value={key === 'summary' ? proposal!.summary : proposal!.sections[key]}
@@ -140,11 +184,11 @@ export default function ProposalPage() {
   );
 
 
-  const doc = proposal && (() => {
+  const doc = proposal && scan && result && (() => {
     const { lot, measure, condition: c } = scan;
-    const scenarios = [...mockScenarios.scenarios].sort((a, b) => a.rank - b.rank);
+    const scenarios = [...result.scenarios].sort((a, b) => a.rank - b.rank);
     const scenario = scenarios.find((s) => s.scenario_id === proposal.scenario_id) ?? scenarios[0];
-    const parts = scenario.parts.map((p) => mockParts.find((mp) => mp.part_id === p.part_id)).filter((p) => p != null);
+    const parts = scenario.parts.map((p) => allParts.find((mp) => mp.part_id === p.part_id)).filter((p) => p != null);
     const main = parts[0];
     const target = scenario.parts.map((p) => `${p.part_id} ${p.name}`).join(', ');
     const created = new Date(proposal.created_at);
@@ -167,7 +211,7 @@ export default function ProposalPage() {
     const scrap = scrapUsd && measure.kg ? scrapUsd.map((usd) => ((measure.kg! * usd * USD_KRW) / 10000).toFixed(1)) : null;
     // 순회수 가치가 비슷한데 활용률이 낮은 대안이 있으면 그 이유로 제안 근거를 설명
     const alt = scenarios.find((s) => s !== scenario && s.nrv >= scenario.nrv * 0.9 && utilOf(s) < utilOf(scenario));
-    return { lot, measure, c, scenarios, scenario, parts, main, target, created, due, revised, verdict, m, util, dims,
+    return { scan, lot, measure, c, scenarios, scenario, parts, main, target, created, due, revised, verdict, m, util, dims,
       u, ids, names, allow, usable, rho, rhoRef, scrapUsd, scrap, alt,
       docNo: `RF-PRP-${lot.lot_id.replace(/^LOT-/, '')}-${String(proposal.proposal_id).padStart(2, '0')}` };
   })();
@@ -179,7 +223,14 @@ export default function ProposalPage() {
       </div>
       <div className="proposal-workspace">
         <div className="paper official" ref={paperRef}>
-          {!proposal || !doc ? <ProposalSkeleton /> : (
+          {loadError ? (
+            <div className="error-card">
+              <div className="error-icon"><Icon name="x" /></div>
+              <h2>제안서를 불러오지 못했습니다.</h2>
+              <p>{getErrorMessage(loadError)}</p>
+              <button className="secondary-button" onClick={() => navigate('/')}><Icon name="refresh" /> 다시 스캔</button>
+            </div>
+          ) : !proposal || !doc || regenerate.isPending ? <ProposalSkeleton /> : (
             <>
               <div className="doc-running">REFORGE AI · 자투리 재사용 처분 제안서 &nbsp;|&nbsp; {doc.docNo} &nbsp;Rev.0</div>
 
@@ -251,7 +302,7 @@ export default function ProposalPage() {
                     return [label, v == null ? '—' : `${v} ${unit}`, `${green} ${unit} 이하`, v == null ? '—' : <Result value={v <= green ? '적합' : v <= y ? '주의' : '부적합'} />];
                   }),
                   ['밀도 대조', doc.rho == null ? '—' : `${doc.rho.toFixed(2)} g/cm³`, doc.rhoRef ? `${doc.lot.grade} 기준 ${doc.rhoRef.toFixed(2)} ± ${DENSITY_TOL * 100} %` : '—',
-                    scan.density_err == null ? '—' : <Result value={scan.density_err <= DENSITY_TOL ? '적합' : '주의'} />],
+                    doc.scan.density_err == null ? '—' : <Result value={doc.scan.density_err <= DENSITY_TOL ? '적합' : '주의'} />],
                   ['균열 · 화학조성', `${doc.c?.crack ? CRACK_TEXT[doc.c.crack] : '균열 —'} · ${doc.c?.chem ? CHEM_TEXT[doc.c.chem] : '화학조성 —'}`, '—',
                     <Result value={doc.c?.crack === 'none' && doc.c?.chem === 'IN' ? '적합' : '확인 필요'} />],
                 ]} />
@@ -269,7 +320,7 @@ export default function ProposalPage() {
               <Section title="5. 재사용 방안 및 대안 비교">
                 <Table head={['후보', '활용 단계', '우선순위 점수', '순회수 가치', '비고']} num={[2, 3]} rows={[
                   ...doc.scenarios.map((s) => {
-                    const stage = mockParts.find((p) => p.part_id === s.parts[0]?.part_id)?.stage;
+                    const stage = allParts.find((p) => p.part_id === s.parts[0]?.part_id)?.stage;
                     const name = s.parts.map((p) => `${p.part_id} ${p.name}`).join(', ');
                     const chosen = s.scenario_id === doc.scenario.scenario_id;
                     const note = chosen ? `소재 활용률 ${utilOf(s)} %`
@@ -315,8 +366,8 @@ export default function ProposalPage() {
                   <li>본 처분은 {doc.u.scope}에 한정하며, 비행 부품 및 고객 납품품에는 적용하지 않습니다.</li>
                   <li>순회수 가치는 사내 기준 단가 기반 추정치이며, 실제 원가는 생산기술팀 견적으로 확정합니다.</li>
                   <li>측정 기준의 가드밴드 값은 시스템 초기값으로, 정기 반복 측정을 통해 보정 중입니다.</li>
-                  {scan.yellow_actions.length > 0 && (
-                    <li>추가 확인 조치({scan.yellow_actions.map((a) => a.action).join(', ')})를 통과한 뒤 승인해야 하며, 표면 절삭 시 치수를 다시 확인합니다.</li>
+                  {doc.scan.yellow_actions.length > 0 && (
+                    <li>추가 확인 조치({doc.scan.yellow_actions.map((a) => a.action).join(', ')})를 통과한 뒤 승인해야 하며, 표면 절삭 시 치수를 다시 확인합니다.</li>
                   )}
                 </ol>
               </Section>
@@ -366,13 +417,17 @@ export default function ProposalPage() {
           )}
         </div>
         <div className="action-stack">
-          <div className="proposal-state"><Icon name="edit" className="size-4" /> 편집 가능</div>
+          <div className="proposal-state">
+            <Icon name="edit" className="size-4" />
+            {save.isPending ? '저장 중…' : save.error ? `저장 실패: ${getErrorMessage(save.error)}` : regenerate.error ? `생성 실패: ${getErrorMessage(regenerate.error)}` : '편집 가능'}
+          </div>
           <aside className="floating-actions">
             <span>문서 작업</span>
             <button onClick={() => print()}><Icon name="download" /> PDF 저장</button>
             <button onClick={() => print()}><Icon name="print" /> 인쇄</button>
-            {/* TODO: POST /proposals/generate 다시 호출 */}
-            <button onClick={() => setProposal(mockProposal)}><Icon name="refresh" /> 다시 생성</button>
+            <button onClick={regenerateProposal} disabled={!proposal || regenerate.isPending}>
+              <Icon name="refresh" /> {regenerate.isPending ? '생성 중…' : '다시 생성'}
+            </button>
             <div><Icon name="check" /><p><strong>검토 준비 완료</strong>9개 항목 작성됨</p></div>
           </aside>
         </div>

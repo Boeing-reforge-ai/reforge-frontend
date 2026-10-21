@@ -2,10 +2,10 @@ import { useQuery } from '@tanstack/react-query';
 import { getOrGenerateScenarios } from '@/api/scenarios';
 import { getParts, getProductionPlans } from '@/api/reference';
 
-export function useScenarios(scanId: number) {
+export function useScenarios(scanId: number, { generate = true } = {}) {
   return useQuery({
     queryKey: ['scans', scanId, 'scenarios'],
-    queryFn: () => getOrGenerateScenarios(scanId),
+    queryFn: () => getOrGenerateScenarios(scanId, generate),
     enabled: Number.isInteger(scanId),
     staleTime: Infinity,
     retry: false, // 실패 시 재생성(LLM 호출)이 반복되지 않도록

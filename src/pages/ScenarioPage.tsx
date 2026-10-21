@@ -4,6 +4,7 @@ import { AiBadge } from '@/components/Brand';
 import Icon from '@/components/Icon';
 import MaterialDetail from '@/components/MaterialDetail';
 import { getErrorMessage } from '@/api/client';
+import { useGenerateProposal } from '@/hooks/useProposal';
 import { useScan } from '@/hooks/useScan';
 import { useParts, useProductionPlans, useScenarios } from '@/hooks/useScenarios';
 import { LED_CLASS, USAGE_STAGE_LABEL, won } from '@/lib/labels';
@@ -197,6 +198,7 @@ function ScenarioContent({ scan, result, parts, plans }: { scan: ScanDetail; res
   const navigate = useNavigate();
   const partsById = Object.fromEntries(parts.map((p) => [p.part_id, p])) as Record<string, Part>;
   const demandById = plans.reduce<Record<string, number>>((acc, p) => ({ ...acc, [p.part_id]: (acc[p.part_id] ?? 0) + p.quantity }), {});
+  const generate = useGenerateProposal();
   const [selected, setSelected] = useState(result.recommended_id ?? result.scenarios[0].scenario_id);
   const [showRejected, setShowRejected] = useState(false);
   const [compare, setCompare] = useState(false);
@@ -263,11 +265,17 @@ function ScenarioContent({ scan, result, parts, plans }: { scan: ScanDetail; res
         {compare && <Comparison list={result.scenarios} selectedId={selected} />}
       </main>
       <div className="selection-bar">
-        <div><span>선택한 시나리오</span><strong>{scenario.parts.map((p) => p.name).join(' + ')}</strong><i>우선순위 점수 P {scenario.score}점{result.conditional ? ' · 확인 통과 시' : ''}</i></div>
+        <div><span>선택한 시나리오</span><strong>{scenario.parts.map((p) => p.name).join(' + ')}</strong><i>{generate.error ? getErrorMessage(generate.error) : `우선순위 점수 P ${scenario.score}점${result.conditional ? ' · 확인 통과 시' : ''}`}</i></div>
         <div className="selection-actions">
           <button className="cancel-button dark" onClick={() => navigate('/')}><Icon name="x" /></button>
-          {/* TODO: POST /proposals/generate { scan_id, scenario_id } 후 /proposals/{proposal_id}로 이동 */}
-          <button className="primary-button" onClick={() => navigate('/proposals/1')}><Icon name="file" /> 이 시나리오로 제안서 생성 <Icon name="arrow" /></button>
+          <button
+            className="primary-button" disabled={generate.isPending}
+            onClick={() => generate.mutate({ scanId: scan.scan_id, scenarioId: selected }, {
+              onSuccess: (p) => navigate(`/proposals/${p.proposal_id}`),
+            })}
+          >
+            <Icon name="file" /> {generate.isPending ? '제안서 생성 중…' : '이 시나리오로 제안서 생성'} <Icon name="arrow" />
+          </button>
         </div>
       </div>
     </>
