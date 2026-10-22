@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import jsQR from 'jsqr';
+import { BarcodeDetector, prepareZXingModule } from 'barcode-detector/ponyfill';
+import zxingWasmUrl from 'zxing-wasm/reader/zxing_reader.wasm?url';
+
+// 기본값은 jsDelivr CDN에서 wasm을 받아옴 → 스테이션 네트워크 상황에 안 휘둘리게 번들에 포함
+prepareZXingModule({
+  overrides: { locateFile: (path: string, prefix: string) => (path.endsWith('.wasm') ? zxingWasmUrl : prefix + path) },
+});
 
 export type CameraStatus = 'starting' | 'live' | 'denied' | 'unavailable';
 
@@ -8,8 +14,7 @@ export interface CameraFeed {
   resolution: [number, number] | null;
 }
 
-const SCAN_WIDTH = 1280; // 디코딩용 축소 폭 (전체 해상도로 돌리면 프레임이 밀림)
-const SCAN_INTERVAL_MS = 150;
+const SCAN_INTERVAL_MS = 300;
 const REPEAT_COOLDOWN_MS = 3000; // 같은 QR이 계속 비치는 동안 중복 콜백 방지
 
 // 웹캠 영상을 띄우고 QR이 인식되면 onDetect(QR 문자열, 그 순간 프레임) 호출
@@ -30,8 +35,8 @@ export function useQrCamera(onDetect: (text: string, frame: Blob | null) => void
     let timer = 0;
     let cancelled = false;
     let last = { text: '', at: 0 };
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    // ZXing이라 반전(어두운 바탕의 밝은 QR)도 같이 잡힘, 원본 해상도 그대로 디코딩
+    const detector = new BarcodeDetector({ formats: ['qr_code'] });
 
     const captureFrame = (video: HTMLVideoElement) =>
       new Promise<Blob | null>((resolve) => {
@@ -44,18 +49,18 @@ export function useQrCamera(onDetect: (text: string, frame: Blob | null) => void
 
     const tick = async () => {
       const video = videoRef.current;
-      if (video && ctx && video.readyState >= video.HAVE_ENOUGH_DATA) {
-        canvas.width = SCAN_WIDTH;
-        canvas.height = Math.round((video.videoHeight / video.videoWidth) * SCAN_WIDTH);
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        const { data, width, height } = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const code = jsQR(data, width, height, { inversionAttempts: 'dontInvert' });
+      if (video && video.readyState >= video.HAVE_ENOUGH_DATA) {
+        const t = performance.now();
+        const text = (await detector.detect(video).catch(() => []))[0]?.rawValue;
+        // TODO 임시: 디코딩 소요시간 측정용, SCAN_INTERVAL_MS 정하고 나면 지우기
+        console.log(`detect ${Math.round(performance.now() - t)}ms @ ${video.videoWidth}x${video.videoHeight}`, text ?? '');
+        if (cancelled) return;
         const now = Date.now();
-        if (code?.data && !(code.data === last.text && now - last.at < REPEAT_COOLDOWN_MS)) {
-          last = { text: code.data, at: now };
+        if (text && !(text === last.text && now - last.at < REPEAT_COOLDOWN_MS)) {
+          last = { text, at: now };
           const frame = await captureFrame(video);
           if (cancelled) return;
-          onDetectRef.current(code.data, frame);
+          onDetectRef.current(text, frame);
         }
       }
       if (!cancelled) timer = window.setTimeout(tick, SCAN_INTERVAL_MS);
