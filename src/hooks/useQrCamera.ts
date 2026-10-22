@@ -8,7 +8,7 @@ export interface CameraFeed {
   resolution: [number, number] | null;
 }
 
-const SCAN_WIDTH = 720; // 디코딩용 축소 폭 (전체 해상도로 돌리면 프레임이 밀림)
+const SCAN_WIDTH = 1280; // 디코딩용 축소 폭 (전체 해상도로 돌리면 프레임이 밀림)
 const SCAN_INTERVAL_MS = 150;
 const REPEAT_COOLDOWN_MS = 3000; // 같은 QR이 계속 비치는 동안 중복 콜백 방지
 
