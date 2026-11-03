@@ -43,8 +43,7 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .brand { display: flex; align-items: center; gap: 10px; border: 0; background: transparent; color: white; cursor: pointer; justify-self: start; padding: 0; }
 .stepper { display: flex; align-items: center; gap: 0; }
 .step-wrap { display: flex; align-items: center; }
-.step { display: flex; align-items: center; color: #8ea1ba; font-size: 18px; font-weight: 600; border: 0; background: transparent; padding: 5px 5px; cursor: pointer; text-decoration: none; }
-.step:hover { color: white; }
+.step { display: flex; align-items: center; color: #8ea1ba; font-size: 18px; font-weight: 600; border: 0; background: transparent; padding: 5px 5px; cursor: default; text-decoration: none; }
 .step-num { width: 26px; height: 26px; border: 1px solid #52647b; border-radius: 50%; display: grid; place-items: center; margin-right: 15px; font-size: 14px; }
 .step-line { width: 68px; height: 1px; background: #40536c; margin: 0 10px; }
 .step.active { color: white; }

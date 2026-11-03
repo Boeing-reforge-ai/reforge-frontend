@@ -23,10 +23,31 @@ async function open(p: SerialPort) {
   try {
     await p.open({ baudRate: BAUD_RATE });
     port = p;
+    console.log('[LED] 포트 열림', p.getInfo());
+    void echo(p);
     await new Promise((r) => setTimeout(r, BOOT_MS));
     setStatus('connected');
-  } catch {
+  } catch (e) {
+    console.warn('[LED] 포트 열기 실패', e);
     setStatus(port ? 'connected' : 'disconnected');
+  }
+}
+
+// TODO 임시: 아두이노가 돌려보내는 "LED G" 응답을 콘솔에 표시 (전송 확인용)
+async function echo(p: SerialPort) {
+  const reader = p.readable?.getReader();
+  if (!reader) return;
+  const decoder = new TextDecoder();
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      console.log('[LED] 아두이노 →', JSON.stringify(decoder.decode(value)));
+    }
+  } catch (e) {
+    console.warn('[LED] 읽기 종료', e);
+  } finally {
+    reader.releaseLock();
   }
 }
 
@@ -49,10 +70,14 @@ export async function restoreLed() {
 
 // 판정 결과 LED 점등. 연결 안 됐으면 무시
 export async function sendLed(led: Led) {
+  console.log('[LED] 전송 요청', led, { status, writable: !!port?.writable });
   if (status !== 'connected' || !port?.writable) return;
   const writer = port.writable.getWriter();
   try {
     await writer.write(new TextEncoder().encode(led));
+    console.log('[LED] 전송 완료', led);
+  } catch (e) {
+    console.warn('[LED] 전송 실패', e);
   } finally {
     writer.releaseLock();
   }

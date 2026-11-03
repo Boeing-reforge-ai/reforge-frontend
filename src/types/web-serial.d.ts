@@ -2,6 +2,8 @@
 interface SerialPort extends EventTarget {
   open(options: { baudRate: number }): Promise<void>;
   readonly writable: WritableStream<Uint8Array> | null;
+  readonly readable: ReadableStream<Uint8Array> | null;
+  getInfo(): { usbVendorId?: number; usbProductId?: number };
 }
 
 interface Serial extends EventTarget {

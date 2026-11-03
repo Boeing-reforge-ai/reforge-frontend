@@ -1,16 +1,11 @@
 import { useState } from 'react';
-import { Link, Outlet, useLocation } from 'react-router';
+import { Link, Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { BrandLogo, SplashScreen } from '@/components/Brand';
 import Icon from '@/components/Icon';
 
 type Step = 1 | 2 | 3;
 
-const STEPS: { label: string; path: string }[] = [
-  { label: '분석 진행', path: '/' },
-  // TODO: API 연결 후 현재 스캔·제안서 ID로 교체
-  { label: '시나리오', path: '/scans/1/scenarios' },
-  { label: '제안서', path: '/proposals/1' },
-];
+const STEPS = ['분석 진행', '시나리오', '제안서'];
 
 function stepOf(pathname: string): Step {
   if (pathname.startsWith('/proposals/')) return 3;
@@ -23,18 +18,18 @@ function Header({ step }: { step: Step }) {
     <header className="app-header">
       <Link className="brand" to="/"><BrandLogo variant="header" /></Link>
       <nav className="stepper" aria-label="진행 단계">
-        {STEPS.map(({ label, path }, index) => {
+        {STEPS.map((label, index) => {
           const number = (index + 1) as Step;
           return (
             <div className="step-wrap" key={label}>
-              <Link
-                to={path}
+              {/* 진행 상태 표시만, 클릭으로 이동하지 않음 */}
+              <div
                 className={`step ${number === step ? 'active' : ''} ${number < step ? 'complete' : ''}`}
                 aria-current={number === step ? 'step' : undefined}
               >
                 <span className="step-num">{number < step ? <Icon name="check" className="size-3.5" /> : number}</span>
                 <span>{label}</span>
-              </Link>
+              </div>
               {index < STEPS.length - 1 && <span className="step-line" />}
             </div>
           );
@@ -56,6 +51,8 @@ export default function AppLayout() {
     <div className="min-h-screen bg-slate-100 text-slate-900">
       <Header step={stepOf(pathname)} />
       <Outlet />
+      {/* 새 화면으로 이동하면 맨 위부터, 뒤로 가기는 이전 위치 복원 */}
+      <ScrollRestoration />
     </div>
   );
 }
