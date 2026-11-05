@@ -51,10 +51,6 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .step.complete { color: #bcd2ed; }
 .step.complete .step-num { color: #3bd18b; border-color: #3bd18b; }
 .header-right { justify-self: end; display: flex; align-items: center; gap: 18px; }
-.lang-toggle { display: inline-flex; border: 1px solid #ffffff33; border-radius: 8px; overflow: hidden; }
-.lang-toggle button { background: transparent; color: #c8d5e4; font-size: 12px; font-weight: 600; padding: 5px 11px; border: 0; cursor: pointer; }
-.lang-toggle button:hover { background: #ffffff14; }
-.lang-toggle button.active { background: #1d6fe0; color: white; }
 .server-status { display: flex; align-items: center; gap: 8px; color: #c8d5e4; font-size: 13px; }
 .status-dot { width: 8px; height: 8px; background: #28c77b; border-radius: 50%; box-shadow: 0 0 0 4px #28c77b1f; display: inline-block; }
 .status-dot.off { background: #dc3d4a; box-shadow: 0 0 0 4px #dc3d4a1f; }

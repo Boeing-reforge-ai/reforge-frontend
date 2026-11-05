@@ -3,9 +3,8 @@ import type { Lang, MessageKey } from './messages';
 
 export type LangContextValue = {
   lang: Lang;
-  setLang: (lang: Lang) => void;
   t: (key: MessageKey) => string;
-  /** 인라인 번역: tr('English', '한국어') */
+  /** 인라인 번역: tr('English', '한국어'). 영어 전용이라 영어를 돌려준다 */
   tr: (en: string, ko: string) => string;
 };
 

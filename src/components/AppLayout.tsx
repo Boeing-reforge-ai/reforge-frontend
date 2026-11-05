@@ -16,7 +16,7 @@ function stepOf(pathname: string): Step {
 }
 
 function Header({ step }: { step: Step }) {
-  const { lang, setLang, t } = useLang();
+  const { t } = useLang();
   return (
     <header className="app-header">
       <Link className="brand" to="/"><BrandLogo variant="header" /></Link>
@@ -41,19 +41,6 @@ function Header({ step }: { step: Step }) {
       {/* TODO: GET /health 결과로 연결 상태 표시 */}
       <div className="header-right">
         <div className="server-status"><span className="status-dot" /> {t('header.serverConnected')}</div>
-        <div className="lang-toggle" role="group" aria-label={t('header.langToggle')}>
-          {(['en', 'ko'] as const).map((code) => (
-            <button
-              key={code}
-              type="button"
-              className={lang === code ? 'active' : ''}
-              aria-pressed={lang === code}
-              onClick={() => setLang(code)}
-            >
-              {code === 'en' ? 'EN' : 'KO'}
-            </button>
-          ))}
-        </div>
       </div>
     </header>
   );

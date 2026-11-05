@@ -1,33 +1,12 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import { LangContext } from './context';
-import { messages, type Lang, type MessageKey } from './messages';
+import { messages, type MessageKey } from './messages';
 
-const STORAGE_KEY = 'reforge.lang';
-
-function initialLang(): Lang {
-  let lang: Lang = 'en';
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved === 'en' || saved === 'ko') lang = saved;
-  } catch { /* 저장소 접근 불가 시 기본값 */ }
-  // 하위 컴포넌트의 첫 API 요청(Accept-Language)보다 먼저 반영되도록 동기로 설정
-  document.documentElement.lang = lang;
-  return lang;
-}
-
+// 영어 전용. 코드 곳곳의 tr(en, ko)는 항상 영어를 돌려준다. (한국어 문구는 다시 켤 때를 위해 남겨 둠)
 export function LangProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(initialLang);
-
-  const setLang = useCallback((next: Lang) => {
-    setLangState(next);
-    try { localStorage.setItem(STORAGE_KEY, next); } catch { /* ignore */ }
-  }, []);
-
-  useEffect(() => { document.documentElement.lang = lang; }, [lang]);
-
   const value = useMemo(
-    () => ({ lang, setLang, t: (key: MessageKey) => messages[lang][key], tr: (en: string, ko: string) => (lang === 'en' ? en : ko) }),
-    [lang, setLang],
+    () => ({ lang: 'en' as const, t: (key: MessageKey) => messages.en[key], tr: (en: string) => en }),
+    [],
   );
   return <LangContext.Provider value={value}>{children}</LangContext.Provider>;
 }
