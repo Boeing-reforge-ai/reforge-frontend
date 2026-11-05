@@ -146,7 +146,7 @@ function Comparison({ list, selectedId }: { list: Scenario[]; selectedId: number
   ];
   return (
     <section className="content-section comparison-section">
-      <div className="section-title"><div><p>COMPARISON</p><h2>{tr('Scenario Comparison', '시나리오 비교')}</h2></div></div>
+      <div className="section-title"><div><h2>{tr('Scenario Comparison', '시나리오 비교')}</h2></div></div>
       <div className="comparison-table">
         <div className="comparison-row head">
           <span>{tr('Metric', '비교 지표')}</span>
@@ -227,11 +227,11 @@ function ScenarioContent({ scan, result, parts, plans }: { scan: ScanDetail; res
       )}
       <main className="scenario-page">
         <div className="page-intro">
-          <div><p>AI SCENARIO ANALYSIS</p><h1>{tr('Recycling Scenario Analysis', '재활용 시나리오 분석')}</h1><span>{tr('Recommends the best recycling route based on geometric fit and the production plan.', '형상 적합성과 생산 계획을 종합하여 최적의 재활용 경로를 추천합니다.')}</span></div>
+          <div><h1>{tr('Recycling Scenario Analysis', '재활용 시나리오 분석')}</h1><span>{tr('Recommends the best recycling route based on geometric fit and the production plan.', '형상 적합성과 생산 계획을 종합하여 최적의 재활용 경로를 추천합니다.')}</span></div>
           <button className={`compare-button ${compare ? 'active' : ''}`} onClick={() => setCompare(!compare)}><Icon name="compare" /> {tr('Compare', '비교 보기')} <i>{compare ? 'ON' : 'OFF'}</i></button>
         </div>
         <section className="content-section">
-          <div className="section-title"><div><p>GEOMETRY · QUALIFICATION FILTER</p><h2>{tr('Candidate Filter Results', '후보 필터 결과')}</h2></div><b>{tr(`${result.candidates.length} passed`, `${result.candidates.length}개 통과`)}</b></div>
+          <div className="section-title"><div><h2>{tr('Candidate Filter Results', '후보 필터 결과')}</h2></div><b>{tr(`${result.candidates.length} passed`, `${result.candidates.length}개 통과`)}</b></div>
           <div className="filter-grid">
             {result.candidates.map((c) => {
               const p = partsById[c.part_id];
@@ -257,7 +257,7 @@ function ScenarioContent({ scan, result, parts, plans }: { scan: ScanDetail; res
           )}
         </section>
         <section className="content-section recommendation-section">
-          <div className="section-title"><div><p>RECOMMENDATION</p><h2>{tr('Scenario Ranking', '시나리오 추천 순위')}</h2></div><b>{tr(`${result.scenarios.length} scenarios`, `총 ${result.scenarios.length}개 시나리오`)}</b></div>
+          <div className="section-title"><div><h2>{tr('Scenario Ranking', '시나리오 추천 순위')}</h2></div><b>{tr(`${result.scenarios.length} scenarios`, `총 ${result.scenarios.length}개 시나리오`)}</b></div>
           {/* 노랑: 추가 확인을 통과해야 후보로 확정 */}
           {result.conditional && (
             <div className="conditional-note">

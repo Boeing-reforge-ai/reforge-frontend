@@ -232,7 +232,7 @@ export default function ProposalPage() {
   return (
     <main className="proposal-page">
       <div className="proposal-top">
-        <div><p>RECYCLING PROPOSAL</p><h1>{tr('Recycling Proposal', '재활용 제안서')}</h1><span>{tr('Review the AI-generated content and edit any item as needed.', 'AI가 생성한 내용을 검토하고 필요한 항목을 직접 편집할 수 있습니다.')}</span></div>
+        <div><h1>{tr('Recycling Proposal', '재활용 제안서')}</h1><span>{tr('Review the AI-generated content and edit any item as needed.', 'AI가 생성한 내용을 검토하고 필요한 항목을 직접 편집할 수 있습니다.')}</span></div>
       </div>
       <div className="proposal-workspace">
         <div className="paper official" ref={paperRef}>

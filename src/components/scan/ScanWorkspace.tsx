@@ -159,7 +159,7 @@ export default function ScanWorkspace({ scan, view, camera, videoRef, caption }:
     <main className="analysis-main">
       <section className="scan-column">
         <div className="page-heading">
-          <div><p>SCRAP IDENTIFICATION</p><h1>{tr('Scrap Scan & Type Assessment', '자투리 스캔 및 유형 판정')}</h1></div>
+          <div><h1>{tr('Scrap Scan & Type Assessment', '자투리 스캔 및 유형 판정')}</h1></div>
           <div className="station-tools">
             <LedButton />
             <span className="station-chip"><span className={`station-led ${ledClass}`} /> STATION 01</span>
