@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
 import { RouterProvider } from 'react-router';
 import { router } from './router';
+import { LangProvider } from './i18n/LangProvider';
 import { restoreLed } from './lib/led';
 import './index.css';
 
@@ -17,7 +18,9 @@ const queryClient = new QueryClient({
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <RouterProvider router={router} />
+      <LangProvider>
+        <RouterProvider router={router} />
+      </LangProvider>
       <ReactQueryDevtools />
     </QueryClientProvider>
   </StrictMode>,

@@ -2,10 +2,12 @@ import { useState } from 'react';
 import { Link, Outlet, ScrollRestoration, useLocation } from 'react-router';
 import { BrandLogo, SplashScreen } from '@/components/Brand';
 import Icon from '@/components/Icon';
+import { useLang } from '@/i18n/useLang';
+import type { MessageKey } from '@/i18n/messages';
 
 type Step = 1 | 2 | 3;
 
-const STEPS = ['분석 진행', '시나리오', '제안서'];
+const STEPS: MessageKey[] = ['step.analysis', 'step.scenario', 'step.proposal'];
 
 function stepOf(pathname: string): Step {
   if (pathname.startsWith('/proposals/')) return 3;
@@ -14,21 +16,22 @@ function stepOf(pathname: string): Step {
 }
 
 function Header({ step }: { step: Step }) {
+  const { lang, setLang, t } = useLang();
   return (
     <header className="app-header">
       <Link className="brand" to="/"><BrandLogo variant="header" /></Link>
-      <nav className="stepper" aria-label="진행 단계">
-        {STEPS.map((label, index) => {
+      <nav className="stepper" aria-label={t('header.stepsLabel')}>
+        {STEPS.map((key, index) => {
           const number = (index + 1) as Step;
           return (
-            <div className="step-wrap" key={label}>
+            <div className="step-wrap" key={key}>
               {/* 진행 상태 표시만, 클릭으로 이동하지 않음 */}
               <div
                 className={`step ${number === step ? 'active' : ''} ${number < step ? 'complete' : ''}`}
                 aria-current={number === step ? 'step' : undefined}
               >
                 <span className="step-num">{number < step ? <Icon name="check" className="size-3.5" /> : number}</span>
-                <span>{label}</span>
+                <span>{t(key)}</span>
               </div>
               {index < STEPS.length - 1 && <span className="step-line" />}
             </div>
@@ -36,7 +39,22 @@ function Header({ step }: { step: Step }) {
         })}
       </nav>
       {/* TODO: GET /health 결과로 연결 상태 표시 */}
-      <div className="server-status"><span className="status-dot" /> 서버 연결됨</div>
+      <div className="header-right">
+        <div className="server-status"><span className="status-dot" /> {t('header.serverConnected')}</div>
+        <div className="lang-toggle" role="group" aria-label={t('header.langToggle')}>
+          {(['en', 'ko'] as const).map((code) => (
+            <button
+              key={code}
+              type="button"
+              className={lang === code ? 'active' : ''}
+              aria-pressed={lang === code}
+              onClick={() => setLang(code)}
+            >
+              {code === 'en' ? 'EN' : 'KO'}
+            </button>
+          ))}
+        </div>
+      </div>
     </header>
   );
 }
