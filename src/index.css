@@ -281,7 +281,7 @@ button:focus-visible { outline: 3px solid #93c5fd; outline-offset: 2px; }
 .doc-edit { border: 0; background: transparent; color: #8290a1; display: flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 500; cursor: pointer; } .doc-edit svg { width: 13px; }
 .doc-list { margin: 0; padding-left: 40px; list-style: decimal; } .doc-list li { padding-left: 4px; }
 .doc-list.ga { list-style: none; counter-reset: ga; padding-left: 22px; } .doc-list.ga li { counter-increment: ga; text-indent: -1.6em; padding-left: 1.6em; }
-.doc-list.ga li::before { content: counter(ga, hangul) ". "; }
+.doc-list.ga li::before { content: counter(ga, upper-alpha) ". "; }
 .doc-end { text-align: right; font-weight: 800; font-size: 15px; margin-top: 10px; }
 /* 엔지니어 의견란: 기본 5줄, 입력하면 내용만큼 늘어남 (인쇄도 같은 최소 높이) */
 .doc-review { margin-top: 22px; break-inside: avoid; } .doc-review th { width: 18%; vertical-align: top; } .doc-review th small { display: block; color: #8a94a3; font-size: 11px; font-weight: 400; margin-top: 2px; } .doc-review td { padding: 0; }
