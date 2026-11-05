@@ -396,7 +396,7 @@ export default function ProposalPage() {
                     <li>{tr(`${doc.ids} ${doc.u.noun} drawing (to be prepared by Production Engineering)`, `${doc.ids} ${doc.u.noun} 도면 (생산기술팀 작성 예정)`)}</li>
                     {/* AI 필요 서류 중 위 고정 항목(재질증명서 사본)과 겹치지 않는 것 */}
                     {proposal.sections.required_docs.split('\n').map((d) => d.trim())
-                      .filter((d) => d && !(doc.lot.cert && /재질증명서|LOT 성적서/.test(d)))
+                      .filter((d) => d && !(doc.lot.cert && /재질증명서|LOT 성적서|mill certificate|lot certificate/i.test(d)))
                       .map((d) => <li key={d}>{d}</li>)}
                   </ol>
                 )}
