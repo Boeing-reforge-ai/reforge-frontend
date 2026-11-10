@@ -14,8 +14,8 @@ import type { Part, ProductionPlan, ScanDetail, Scenario, ScenarioResult } from 
 
 const PILL_LABEL: Record<'GREEN' | 'YELLOW' | 'RED', Bi> = { GREEN: ['Green', '초록'], YELLOW: ['Yellow · further check', '노랑 · 추가 확인'], RED: ['Red', '빨강'] };
 
-// usage 값(지그·목업·EM·보조도구)은 API 코드값이라 표시만 번역
-const USAGE_LABEL: Record<string, Bi> = { 지그: ['Jig', '지그'], 목업: ['Mock-up', '목업'], EM: ['EM', 'EM'], 보조도구: ['Auxiliary tool', '보조도구'] };
+// usage 값(지그·목업·EM·블랭크·보조도구)은 API 코드값이라 표시만 번역
+const USAGE_LABEL: Record<string, Bi> = { 지그: ['Jig', '지그'], 목업: ['Mock-up', '목업'], EM: ['EM', 'EM'], 블랭크: ['Blank', '블랭크'], 보조도구: ['Auxiliary tool', '보조도구'] };
 
 // breakdown(축별 점수)에서 화면 지표 계산. 제안서 metrics와 같은 정의
 const metricsOf = (s: Scenario) => ({

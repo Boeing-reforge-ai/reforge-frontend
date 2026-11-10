@@ -5,7 +5,7 @@ export type Shape = 'LUMP' | 'CONTAM';
 export type ScrapType = '덩어리형' | '오염형';
 export type Screening = 'GREEN' | 'YELLOW' | 'RED';
 export type ScanStatus = 'analyzing' | 'done' | 'failed';
-export type Usage = '목업' | 'EM' | '지그' | '보조도구';
+export type Usage = '목업' | 'EM' | '지그' | '블랭크' | '보조도구';
 
 export interface ScanCreated {
   scan_id: number;

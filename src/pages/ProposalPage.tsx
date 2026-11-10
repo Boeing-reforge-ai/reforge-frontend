@@ -32,6 +32,7 @@ const USAGE_TEXT: Record<Usage, { noun: Bi; purpose: Bi; scope: Bi; verify: Bi }
   지그: { noun: ['fixture', '치구'], purpose: ['process use', '공정용'], scope: ['ground process fixtures', '지상 공정용 치구'], verify: ['Per tooling verification procedure', '치공구 검증 절차에 따름'] },
   목업: { noun: ['mock-up', '목업'], purpose: ['test/display use', '시험·전시용'], scope: ['ground test/display mock-ups', '지상 시험·전시용 목업'], verify: ['Per internal verification procedure', '사내 검증 절차에 따름'] },
   EM: { noun: ['EM', 'EM'], purpose: ['engineering model use', '엔지니어링 모델용'], scope: ['ground engineering models (EM)', '지상 엔지니어링 모델(EM)'], verify: ['Per internal verification procedure', '사내 검증 절차에 따름'] },
+  블랭크: { noun: ['standard blank', '규격 블랭크'], purpose: ['raw stock use', '원자재용'], scope: ['ground standard blank stock', '지상용 규격 블랭크 원자재'], verify: ['Per internal verification procedure', '사내 검증 절차에 따름'] },
   보조도구: { noun: ['auxiliary tool', '보조도구'], purpose: ['process support', '공정 보조용'], scope: ['ground process auxiliary tools', '지상 공정용 보조도구'], verify: ['Per internal verification procedure', '사내 검증 절차에 따름'] },
 };
 const GRADE_ALIAS: Record<string, string> = { 'Ti-6Al-4V': 'Grade 5' };
