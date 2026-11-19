@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { AiBadge } from '@/components/Brand';
 import Icon from '@/components/Icon';
@@ -9,6 +9,7 @@ import type { Bi } from '@/i18n/pair';
 import { useGenerateProposal } from '@/hooks/useProposal';
 import { useScan } from '@/hooks/useScan';
 import { useParts, useProductionPlans, useScenarios } from '@/hooks/useScenarios';
+import { sendLed, useLedStatus } from '@/lib/led';
 import { LED_CLASS, SCRAP_TYPE_LABEL, USAGE_STAGE_LABEL, won } from '@/lib/labels';
 import type { Part, ProductionPlan, ScanDetail, Scenario, ScenarioResult } from '@/types/api';
 
@@ -173,6 +174,11 @@ export default function ScenarioPage() {
   const { tr, lang } = useLang();
   const scanId = Number(useParams().scanId);
   const scan = useScan(scanId);
+  const ledStatus = useLedStatus();
+  // 스캔 화면에서 켠 판정 LED는 시나리오 화면으로 넘어오면 끈다 (연결이 늦게 잡히면 연결 후에 끈다)
+  useEffect(() => {
+    if (ledStatus === 'connected') void sendLed('O');
+  }, [ledStatus]);
   const scenarios = useScenarios(scanId);
   const parts = useParts();
   const plans = useProductionPlans();

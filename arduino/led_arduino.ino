@@ -1,4 +1,4 @@
-// 시리얼로 G / Y / R 문자를 받으면 8x8 RGB LED 매트릭스(WS2812B, 64개) 전체를 해당 색으로 점등
+// 시리얼로 G / Y / R 문자를 받으면 8x8 RGB LED 매트릭스(WS2812B, 64개) 전체를 해당 색으로 점등, O를 받으면 소등
 // 스캔 화면(src/lib/led.ts)이 Web Serial로 판정 결과를 보낸다. Arduino IDE로 보드에 업로드
 // 필요 라이브러리: Adafruit NeoPixel (Arduino IDE > 라이브러리 관리자에서 설치)
 #include <Adafruit_NeoPixel.h>
@@ -36,6 +36,7 @@ void loop() {
     if (c == 'G') showColor(COLOR_G);
     else if (c == 'Y') showColor(COLOR_Y);
     else if (c == 'R') showColor(COLOR_R);
+    else if (c == 'O') { matrix.clear(); matrix.show(); }  // 시나리오 화면 등에서 소등
     else return;
     Serial.print("LED ");              // 받은 값 확인용 (시리얼 모니터에 표시)
     Serial.println(c);

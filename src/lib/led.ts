@@ -3,6 +3,9 @@
 import { useSyncExternalStore } from 'react';
 import type { Led } from '@/types/api';
 
+// 판정 색(G·Y·R) 또는 소등(O)
+export type LedCommand = Led | 'O';
+
 export type LedStatus = 'unsupported' | 'disconnected' | 'connecting' | 'connected';
 
 const BAUD_RATE = 9600;
@@ -68,8 +71,8 @@ export async function restoreLed() {
   if (p) await open(p);
 }
 
-// 판정 결과 LED 점등. 연결 안 됐으면 무시
-export async function sendLed(led: Led) {
+// 판정 결과 LED 점등 또는 소등(O). 연결 안 됐으면 무시
+export async function sendLed(led: LedCommand) {
   console.log('[LED] 전송 요청', led, { status, writable: !!port?.writable });
   if (status !== 'connected' || !port?.writable) return;
   const writer = port.writable.getWriter();
